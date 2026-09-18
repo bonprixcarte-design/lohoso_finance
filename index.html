@@ -1,0 +1,1804 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BWAKISA CARTE - Gestion Portefeuille</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <!-- Ajout de SheetJS pour l'export Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    
+    <style>
+        /* ==========================================
+           1. CONFIGURATION ET THÈME FINANCIER HIGH-TECH
+           ========================================== */
+        :root {
+            --bg-principal: #0b0f19;
+            --bg-navigation: #111827;
+            --vert-finance: #10b981;
+            --vert-finance-hover: #059669;
+            --rouge-dette: #ef4444;
+            --bleu-accent: #6366f1;
+            --violet-init: #b55fe6;
+            --texte-blanc: #f9fafb;
+            --texte-gris: #9ca3af;
+            --border-couleur: rgba(255, 255, 255, 0.07);
+            --sidebar-width: 260px;
+            --sidebar-collapsed-width: 70px;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        html, body { height: 100%; width: 100%; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-principal);
+            color: var(--texte-blanc);
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* ==========================================
+           CHAMPS DE MONTANT AGRANDIS
+           ========================================== */
+        .input-montant {
+            font-size: 24px !important;
+            font-weight: 800 !important;
+            padding: 15px !important;
+            text-align: center;
+            color: var(--vert-finance) !important;
+            letter-spacing: 1.5px;
+            background-color: rgba(16, 185, 129, 0.05) !important;
+            border: 2px solid var(--vert-finance) !important;
+            border-radius: 12px !important;
+            transition: all 0.3s ease;
+        }
+        .input-montant:focus {
+            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+            outline: none;
+            background-color: rgba(16, 185, 129, 0.1) !important;
+        }
+
+        /* ==========================================
+           NOTIFICATIONS OFFLINE / SYNC BAND
+           ========================================== */
+        #notification-band {
+            position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
+            padding: 15px 30px; border-radius: 8px; font-weight: bold; z-index: 10000;
+            transition: top 0.4s ease-in-out; box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            display: flex; align-items: center; gap: 10px; color: white;
+        }
+        #notification-band.show { top: 20px; }
+        .bg-success { background-color: var(--vert-finance); }
+        .bg-error { background-color: var(--rouge-dette); }
+        .bg-warning { background-color: #f59e0b; color: #fff;}
+
+        /* ==========================================
+           2. ÉCRAN DE LOGIN FINANCIER
+           ========================================== */
+        .login-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: var(--bg-principal); display: flex;
+            justify-content: center; align-items: center; z-index: 2000; padding: 20px;
+            overflow-y: auto;
+        }
+
+        .login-box {
+            background-color: var(--bg-navigation); border: 1px solid var(--border-couleur);
+            padding: 30px; border-radius: 20px; width: 100%; max-width: 420px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        .login-logo {
+            text-align: center; font-size: 26px; font-weight: 800;
+            color: var(--texte-blanc); margin-bottom: 5px; letter-spacing: -1px;
+        }
+        
+        .login-subtitle {
+            text-align: center; font-size: 11px; font-weight: 300;
+            color: var(--rouge-dette); margin-bottom: 25px; text-transform: uppercase;
+            letter-spacing: 2px; font-family: 'Lucida Calligraphy', cursive;
+        }
+
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; color: var(--texte-gris); font-size: 14px; }
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%; padding: 12px 16px; background-color: var(--bg-principal);
+            border: 1px solid var(--border-couleur); border-radius: 10px; color: var(--texte-blanc);
+            font-size: 15px; outline: none; font-family: inherit;
+        }
+        .form-group textarea { resize: vertical; min-height: 80px; }
+
+        .login-btn {
+            width: 100%; padding: 14px; background-color: var(--vert-finance);
+            border: none; border-radius: 10px; color: #ffffff; font-size: 16px;
+            font-weight: 700; cursor: pointer; transition: all 0.2s;
+        }
+        .login-btn:hover { background-color: var(--vert-finance-hover); }
+
+        /* ==========================================
+           3. STRUCTURE DE L'APPLICATION (RETRACTABLE)
+           ========================================== */
+        .app-container { display: none; width: 100%; height: 100%; position: relative; }
+
+        .sidebar {
+            width: var(--sidebar-collapsed-width); background-color: var(--bg-navigation);
+            height: 100%; border-right: 1px solid var(--border-couleur); display: flex;
+            flex-direction: column; flex-shrink: 0; z-index: 1000;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            overflow: hidden;
+        }
+        
+        .sidebar.expanded { width: var(--sidebar-width); }
+
+        .sidebar-logo {
+            padding: 20px 15px; font-size: 20px; font-weight: 800; color: var(--texte-blanc);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            border-bottom: 1px solid var(--border-couleur); cursor: pointer;
+            transition: all 0.3s; text-align: center;
+        }
+        
+        .sidebar-logo .brand-sub {
+            font-size: 10px; font-weight: 400; color: var(--rouge-dette); margin-top: 2px;
+            white-space: nowrap; transition: opacity 0.2s; font-family: 'Lucida Calligraphy', cursive;
+            text-transform: uppercase;
+        }
+        
+        .sidebar:not(.expanded) .brand-text, 
+        .sidebar:not(.expanded) .brand-sub,
+        .sidebar:not(.expanded) .menu-text,
+        .sidebar:not(.expanded) .admin-section-title { display: none; }
+        
+        .sidebar:not(.expanded) .menu-item { justify-content: center; padding: 14px 0; border-left: 4px solid transparent; }
+        .sidebar:not(.expanded) .admin-section-circle { margin: 10px 5px; padding: 10px 0; border-radius: 10px; }
+
+        .sidebar-menu { list-style: none; padding: 20px 0; overflow-y: auto; flex-grow: 1; overflow-x: hidden; }
+        
+        .menu-item {
+            padding: 14px 20px; display: flex; align-items: center; color: var(--texte-gris);
+            text-decoration: none; font-size: 15px; cursor: pointer; border-left: 4px solid transparent;
+            white-space: nowrap; transition: all 0.2s;
+        }
+        .menu-item:hover, .menu-item.active { color: var(--texte-blanc); background-color: rgba(255, 255, 255, 0.02); }
+        .menu-item.active {
+            background: linear-gradient(90deg, rgba(16, 185, 129, 0.1) 0%, transparent 100%);
+            border-left: 4px solid var(--vert-finance); color: var(--texte-blanc);
+        }
+        .menu-item i { width: 30px; font-size: 17px; text-align: center; flex-shrink: 0; }
+
+        .admin-section-circle {
+            margin: 15px 15px; padding: 15px 5px; border: 2px solid var(--vert-finance); 
+            border-radius: 24px; background-color: rgba(16, 185, 129, 0.02);
+            transition: all 0.3s;
+        }
+        .admin-section-title {
+            padding-left: 20px; font-size: 11px; text-transform: uppercase; color: var(--vert-finance);
+            font-weight: bold; margin-bottom: 5px; white-space: nowrap;
+        }
+
+        .logout-box { padding: 15px; border-top: 1px solid var(--border-couleur); }
+        .logout-btn {
+            width: 100%; padding: 12px; background-color: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.2); color: #f87171; border-radius: 8px; cursor: pointer; font-weight: 600;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .sidebar:not(.expanded) .logout-btn span { display: none; }
+
+        .content-wrapper { flex-grow: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
+        
+        .topbar {
+            height: 70px; background-color: var(--bg-navigation); border-bottom: 1px solid var(--border-couleur);
+            padding: 0 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+        }
+
+        .menu-toggle {
+            background: none; border: none; color: var(--texte-blanc); font-size: 20px; cursor: pointer; margin-right: 15px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        .app-title { font-size: 18px; font-weight: 600; flex-grow: 1; }
+        .user-profile-header { text-align: right; margin-left: 10px; }
+        .user-name { font-weight: 600; font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        .user-role { font-size: 11px; color: var(--vert-finance); }
+
+        .main-content { padding: 24px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; }
+
+        .sidebar-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6); z-index: 999;
+        }
+
+        /* ==========================================
+           4. PAGES, GRILLES ET TABLEAUX RESPONSIVES
+           ========================================== */
+        .page-section { display: none; }
+        .page-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .section-title { font-size: 22px; margin-bottom: 5px; }
+        .section-subtitle { color: var(--texte-gris); margin-bottom: 24px; font-size: 13px; }
+
+        .stats-grid { 
+            display: flex; flex-wrap: nowrap; gap: 15px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
+        }
+        .stat-card { 
+            flex: 1; min-width: 150px; background-color: var(--bg-navigation); border: 1px solid var(--border-couleur); 
+            border-radius: 14px; padding: 18px 15px; display: flex; flex-direction: column; justify-content: center; 
+        }
+        .stat-value { font-size: clamp(16px, 1.8vw, 22px); font-weight: 700; margin-bottom: 5px; word-break: break-word; }
+        .val-depot { color: var(--vert-finance); }
+        .val-dette { color: var(--rouge-dette); }
+        .stat-label { color: var(--texte-gris); font-size: 12px; }
+
+        .action-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
+        .add-btn { padding: 11px 22px; background-color: var(--vert-finance); border: none; border-radius: 10px; color: #ffffff; font-weight: 600; cursor: pointer; white-space: nowrap; width: auto; transition: 0.2s; }
+        .add-btn:hover { background-color: var(--vert-finance-hover); }
+        .filter-input-search { flex-grow: 1; max-width: 350px; }
+
+        .table-container { background-color: var(--bg-navigation); border: 1px solid var(--border-couleur); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; text-align: left; min-width: 750px; }
+        th { background-color: rgba(0, 0, 0, 0.2); color: var(--texte-gris); padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border-couleur); white-space: nowrap; }
+        td { padding: 14px 16px; border-bottom: 1px solid var(--border-couleur); font-size: 14px; }
+
+        .action-icons { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .action-icons button { background: none; border: none; cursor: pointer; font-size: 17px; transition: transform 0.2s; }
+        .action-icons button:hover { transform: scale(1.15); }
+        .edit-icon { color: var(--bleu-accent); }
+        .delete-icon { color: var(--rouge-dette); }
+        .add-icon { color: var(--vert-finance); }
+        .guard-icon { color: var(--vert-finance); }
+
+        .admin-action { display: none; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block; text-align: center; }
+        .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--vert-finance); }
+        .badge-danger { background: rgba(239, 44, 44, 0.15); color: var(--rouge-dette); }
+        .badge-warning { background: rgba(16, 185, 129, 0.25); color: var(--vert-finance); font-style: italic; }
+        .badge-neutral { background: rgba(255, 255, 255, 0.1); color: var(--texte-blanc); }
+
+        /* MODAL GÉNÉRIQUE (ACTIONS) */
+        .modal-overlay {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7); z-index: 3000; justify-content: center; align-items: center;
+            padding: 15px; overflow-y: auto; overflow-x: hidden; backdrop-filter: blur(5px);
+        }
+        .modal-content {
+            background: var(--bg-navigation); padding: 25px; border-radius: 15px;
+            width: 100%; max-width: 440px; border: 1px solid var(--border-couleur);
+            max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            transition: max-width 0.3s ease; margin: auto;
+        }
+        .modal-large { max-width: 75vw !important; }
+        .modal-65 { max-width: 65vw !important; }
+
+        .modal-title { margin-bottom: 20px; color: var(--vert-finance); font-size: 18px; }
+        .modal-btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .btn-cancel { background: transparent; border: 1px solid var(--texte-gris); color: var(--texte-blanc); padding: 11px; flex: 1; border-radius: 8px; cursor: pointer; transition: 0.2s; min-width: 100px; }
+        .btn-cancel:hover:not(:disabled) { background: rgba(255, 255, 255, 0.1); }
+        .btn-confirm { background: var(--vert-finance); border: none; color: white; font-weight: bold; padding: 11px; flex: 1; border-radius: 8px; cursor: pointer; min-width: 100px; }
+        .btn-confirm:hover:not(:disabled) { background-color: var(--vert-finance-hover); }
+        .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .filter-panel { background: var(--bg-navigation); padding: 16px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border-couleur); display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
+        .filter-control { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 150px; }
+        .filter-control.search-ctrl { flex-grow: 2; min-width: 250px; }
+        .filter-control label { font-size: 12px; color: var(--texte-gris); }
+        .filter-input { width: 100%; padding: 10px 12px; background: var(--bg-principal); border: 1px solid var(--border-couleur); color: white; border-radius: 8px; outline: none; font-size: 14px; }
+
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .chart-header h3 { font-size: 16px; font-weight: 600; }
+        .chart-header select { width: auto; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+        .chart-wrapper { background-color: var(--bg-navigation); border: 1px solid var(--border-couleur); border-radius: 14px; padding: 16px; position: relative; height: 350px; width: 100%; }
+
+        /* ==========================================
+           5. STYLE DE LA CARTE NUMÉRIQUE
+           ========================================== */
+        .card-modal-content {
+            background-color: var(--bg-navigation); color: var(--texte-blanc); padding: 25px; border-radius: 15px; width: 100%;
+            max-width: 440px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
+            position: relative; border: 1px solid var(--border-couleur); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: auto;
+        }
+
+        .btn-close-card {
+            position: absolute; top: 12px; right: 12px; background: transparent; color: var(--texte-gris); border: 1px solid var(--border-couleur);
+            width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; box-shadow: none;
+        }
+        .btn-close-card:hover { background: rgba(239, 68, 68, 0.15); color: var(--rouge-dette); border-color: var(--rouge-dette); }
+
+        .card-header-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-couleur); padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
+        .card-logo-area { display: flex; flex-direction: column; }
+        .card-title-main { font-size: 18px; font-weight: 800; letter-spacing: 1px; color: var(--texte-blanc); text-transform: uppercase; }
+        .card-title-sub { font-size: 10px; font-weight: 400; color: var(--rouge-dette); letter-spacing: 2px; text-transform: uppercase; margin-top: -2px; margin-bottom: 5px; font-family: 'Lucida Calligraphy', cursive; }
+        .card-subtitle { font-size: 10px; font-weight: bold; color: var(--texte-gris); letter-spacing: 1px; margin-top: 2px; }
+        
+        .card-meta-info { font-size: 12px; line-height: 1.4; color: var(--texte-gris); background: var(--bg-principal); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-couleur); flex-grow: 1; min-width: 200px; }
+        .card-meta-info strong { color: var(--texte-blanc); font-size: 13px; }
+
+        .card-grid-31 { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px; margin: 10px 0; }
+        .card-box { aspect-ratio: 1; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2px; font-weight: bold; position: relative; background: var(--bg-principal); }
+        .card-box .box-num { position: absolute; top: 2px; left: 4px; color: var(--texte-gris); font-size: 9px; }
+        .card-box .box-stamp { font-size: 16px; font-weight: 900; display: none; }
+        .card-box .box-label { font-size: 7px; margin-top: 2px; font-weight: normal; display: none; text-align: center; line-height: 1; }
+        
+        .card-box.filled-red { background-color: rgba(239, 68, 68, 0.25) !important; border-color: var(--rouge-dette); color: var(--rouge-dette); }
+        .card-box.filled-red .box-stamp, .card-box.filled-red .box-label { display: block; }
+        .card-box.filled-blue { background-color: rgba(99, 102, 241, 0.25) !important; border-color: var(--bleu-accent); color: #818cf8; }
+        .card-box.filled-blue .box-stamp, .card-box.filled-blue .box-label { display: block; }
+
+        .card-footer-summary { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-couleur); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--texte-gris); margin-top: 10px; }
+        .card-footer-summary strong { font-size: 13px; }
+
+        .card-action-panel { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
+        .card-action-panel button { flex: 1; padding: 10px; font-weight: bold; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.2s; min-width: 140px;}
+        .card-action-panel button:hover { transform: translateY(-2px); }
+
+        /* ==========================================
+           6. MEDIA QUERIES
+           ========================================== */
+        @media (max-width: 992px) {
+            .sidebar { position: fixed; top: 0; left: 0; transform: translateX(-100%); width: var(--sidebar-width) !important; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
+            .sidebar.open { transform: translateX(0); }
+            .sidebar .brand-text, .sidebar .brand-sub, .sidebar .menu-text, .sidebar .admin-section-title { display: inline !important; }
+            .sidebar .menu-item { justify-content: flex-start !important; padding: 14px 24px !important; }
+            .sidebar .admin-section-circle { margin: 15px 15px !important; padding: 15px 5px !important; }
+            .sidebar .logout-btn span { display: inline !important; }
+            .sidebar-overlay.open { display: block; }
+            .modal-large, .modal-65 { max-width: 90vw !important; }
+        }
+        @media (max-width: 640px) {
+            .main-content { padding: 16px; }
+            .topbar { padding: 0 16px; }
+            .action-bar { flex-direction: column; align-items: stretch; }
+            .add-btn { width: 100%; text-align: center; }
+            .filter-input-search { width: 100% !important; max-width: 100%; }
+            .modal-content, .card-modal-content { width: 95%; max-width: 95%; padding: 15px; margin: 10px auto; max-height: 95vh; }
+            .modal-large, .modal-65 { max-width: 98vw !important; }
+            .section-title { font-size: 20px; }
+            .chart-wrapper { height: 260px; }
+            .card-meta-info { margin-left: 0; width: 100%; }
+            .card-grid-31 { grid-template-columns: repeat(5, 1fr); }
+            .card-action-panel { flex-direction: column; }
+            table { font-size: 13px; }
+            th, td { padding: 10px 12px; }
+            .input-montant { font-size: 20px !important; padding: 12px !important; }
+        }
+        #page-historique table th, #page-historique table td { font-size: 12px; padding: 8px 10px; }
+    </style>
+</head>
+<body>
+
+    <div id="notification-band"><i class="fa-solid fa-circle-info"></i><span id="notification-text">Message d'information...</span></div>
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebarMenuMobile()"></div>
+
+    <div class="login-container" id="loginScreen">
+        <div class="login-box">
+            <div class="login-logo"><i class="fa-solid fa-wallet"></i> BWAKISA CARTE</div>
+            <div class="login-subtitle">LOHOSO PHARMA</div>
+            <form onsubmit="handleLogin(event)">
+                <div class="form-group">
+                    <label>Sélectionnez votre fonction</label>
+                    <select id="role" required>
+                        <option value="admin">admin</option>
+                        <option value="agent">agent</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Identifiant utilisateur</label><input type="text" id="username" placeholder="Saisissez votre nom" required></div>
+                <div class="form-group"><label>Clé de sécurité / Mot de passe</label><input type="password" id="password" required></div>
+                <button type="submit" class="login-btn" id="loginSubmitBtn">Accéder aux Coffres</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="app-container" id="mainApp">
+        <aside class="sidebar" id="appSidebar">
+            <div class="sidebar-logo" onclick="toggleSidebarPC()" title="Cliquez pour agrandir/réduire">
+                <span class="brand-text"><i class="fa-solid fa-vault"></i> BWAKISA CARTE</span>
+                <span class="brand-sub">LOHOSO PHARMA</span>
+                <span class="sidebar-icon-only" id="miniLogoIcon" style="display:none;"><i class="fa-solid fa-vault" style="font-size: 22px;"></i></span>
+            </div>
+            <ul class="sidebar-menu">
+                <li><a class="menu-item active" onclick="switchPage('dashboard')"><i class="fa-solid fa-chart-line"></i><span class="menu-text">Tableau de Bord Global</span></a></li>
+                <li><a class="menu-item" onclick="switchPage('comptes')"><i class="fa-solid fa-users"></i><span class="menu-text">Gestion des Comptes</span></a></li>
+                <li><a class="menu-item" onclick="switchPage('dettes_hc')"><i class="fa-solid fa-handshake"></i><span class="menu-text">Dettes Hors Carte</span></a></li>
+                <li><a class="menu-item" onclick="switchPage('boutique')"><i class="fa-solid fa-store"></i><span class="menu-text">Compte pharmacie</span></a></li>
+                <li><a class="menu-item" onclick="switchPage('historique')"><i class="fa-solid fa-receipt"></i><span class="menu-text">Historique Opérations</span></a></li>
+                <div class="admin-section-circle admin-action" id="adminCircleContainer">
+                    <div class="admin-section-title">Espace Décisions</div>
+                    <li><a class="menu-item" onclick="switchPage('corbeille')"><i class="fa-solid fa-trash-can" style="color: var(--rouge-dette);"></i><span class="menu-text">Corbeille (Clôturés)</span></a></li>
+                </div>
+            </ul>
+            <div class="admin-action" style="padding: 10px 15px;">
+                <button class="logout-btn" style="background-color: var(--vert-finance); color: white; border: none; font-weight: bold; width: 100%; margin-bottom: 10px;" onclick="ouvrirModalGestionAgents()">
+                    <i class="fa-solid fa-users-gear"></i> <span class="menu-text" style="margin-left:5px;">Gérer les Agents</span>
+                </button>
+            </div>
+            <div class="logout-box">
+                <button class="logout-btn" onclick="handleLogout()"><i class="fa-solid fa-power-off"></i> <span class="menu-text" style="margin-left: 8px;">Fermer Session</span></button>
+            </div>
+        </aside>
+
+        <div class="content-wrapper">
+            <header class="topbar">
+                <button class="menu-toggle" onclick="toggleSidebarAction()"><i class="fa-solid fa-bars"></i></button>
+                <div class="app-title" id="current-page-title">Tableau de Bord</div>
+                <div class="user-profile-header">
+                    <span class="user-name" id="session-user-name">...</span>
+                    <span class="user-role" id="session-user-role">...</span>
+                </div>
+            </header>
+
+            <main class="main-content">
+                <section id="page-dashboard" class="page-section active">
+                    <h2 class="section-title">Aperçu Financier Global</h2>
+                    <p class="section-subtitle">Ces indicateurs représentent le total cumulé</p>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value val-depot" id="stat-depots">0 FC</div><div class="stat-label">Total Dépôts Entrants</div></div>
+                        <div class="stat-card"><div class="stat-value val-dette" id="stat-prets">0 FC</div><div class="stat-label">Total Prêts Sortants (Dette)</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--bleu-accent);" id="stat-cartes">0 FC</div><div class="stat-label">Total Recettes Cartes (500)</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--violet-init);" id="stat-initial">0 FC</div><div class="stat-label">Total Montant Initial Actif</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--vert-finance);" id="stat-caisse">0 FC</div><div class="stat-label">Caisse Réelle Restante</div></div>
+                    </div>
+                    <div class="chart-header">
+                        <h3>Courbe d'Évolution (Tous les indicateurs)</h3>
+                        <select id="chartPeriodFilter" class="filter-input" onchange="renderEvolutionChart()">
+                            <option value="7">7 derniers jours</option>
+                            <option value="30" selected>30 derniers jours</option>
+                            <option value="90">3 derniers mois</option>
+                            <option value="all">Depuis le début</option>
+                        </select>
+                    </div>
+                    <div class="chart-wrapper"><canvas id="evolutionChart"></canvas></div>
+                </section>
+
+                <section id="page-comptes" class="page-section">
+                    <h2 class="section-title">Comptes Clients & Opérations</h2>
+                    <div class="action-bar">
+                        <button class="add-btn" onclick="ouvrirModalCompte()"><i class="fa-solid fa-plus"></i> Créer nouveau compte</button>
+                        <input type="text" id="searchComptes" class="filter-input filter-input-search" placeholder="🔍 Rechercher (Nom, Adresse...)" oninput="rechercherComptes()">
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>ID</th><th>Prénom</th><th>Nom</th><th>Adresse</th><th>M. Initial</th><th>Dépôts</th><th>Dettes</th><th>Carte</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="table-comptes-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="page-dettes_hc" class="page-section">
+                    <h2 class="section-title">Gestion Hors Carte (Prêts & Garde)</h2>
+                    <p class="section-subtitle">Gérez les prêts accordés et l'argent gardé pour les personnes sans carte.</p>
+                    <div class="action-bar">
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                            <button class="add-btn" onclick="ouvrirModalNouveauProfilHC('emprunt')" style="background-color: var(--rouge-dette); color: white;"><i class="fa-solid fa-hand-holding-dollar"></i> Accorder un Prêt</button>
+                            <button class="add-btn" onclick="ouvrirModalNouveauProfilHC('garde')" style="background-color: var(--vert-finance); color: white;"><i class="fa-solid fa-piggy-bank"></i> Garder Argent</button>
+                        </div>
+                        <input type="text" id="searchDettesHC" class="filter-input filter-input-search" placeholder="🔍 Rechercher un nom..." oninput="renderDettesHC()">
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Nom & Prénom</th><th>Total Prêts</th><th>Total Gardé</th><th>Solde Net</th><th>Statut</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="table-dettes-hc-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="page-boutique" class="page-section">
+                    <h2 class="section-title">Comptes pharmacie (Employés)</h2>
+                    <p class="section-subtitle">Gérez les salaires et les dettes accumulées durant le mois par le personnel.</p>
+                    <div class="action-bar"><button class="add-btn" onclick="ouvrirModalNouvelEmployeBoutique()"><i class="fa-solid fa-user-plus"></i> Ajouter un employé</button></div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Prénom</th><th>Nom</th><th>Salaire (Mois)</th><th>Dette du mois en cours</th><th>Net à Payer (Estimé)</th><th>Actions Mensuelles</th></tr>
+                            </thead>
+                            <tbody id="table-boutique-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="page-historique" class="page-section">
+                    <p class="section-subtitle">Les filtres affichent l'inventaire et les transactions d'une période précise.</p>
+                    <div class="filter-panel">
+                        <div class="filter-control">
+                            <label>Filtrer par période</label>
+                            <select id="invFilterType" class="filter-input" onchange="toggleDateInputs()">
+                                <option value="all">Toutes les données</option>
+                                <option value="day">Par Jour spécifique</option>
+                                <option value="month">Par Mois spécifique</option>
+                                <option value="year">Par Année spécifique</option>
+                            </select>
+                        </div>
+                        <div class="filter-control" id="ctrl-day" style="display:none;"><label>Choisir le jour</label><input type="date" id="filterDay" class="filter-input" onchange="actualiserInterface()"></div>
+                        <div class="filter-control" id="ctrl-month" style="display:none;"><label>Choisir le mois</label><input type="month" id="filterMonth" class="filter-input" onchange="actualiserInterface()"></div>
+                        <div class="filter-control" id="ctrl-year" style="display:none;"><label>Saisir l'année</label><input type="number" id="filterYear" class="filter-input" min="2000" max="2100" placeholder="Ex: 2026" oninput="actualiserInterface()"></div>
+                        <div class="filter-control search-ctrl"><label>Rechercher une opération</label><input type="text" id="searchHistorique" class="filter-input" placeholder="🔍 Rechercher (ID, Client, Type...)" oninput="rechercherHistorique()"></div>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card"><div class="stat-value val-depot" id="gl-stat-depots">0 FC</div><div class="stat-label">Total Dépôts</div></div>
+                        <div class="stat-card"><div class="stat-value val-dette" id="gl-stat-prets">0 FC</div><div class="stat-label">Total Dettes</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--violet-init);" id="gl-stat-initial">0 FC</div><div class="stat-label">Montant Initial Tot.</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--vert-finance);" id="gl-stat-caisse">0 FC</div><div class="stat-label">Caisse Réelle</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--vert-finance);" id="gl-stat-solde-rendu">0 FC</div><div class="stat-label">Total Solde Rendu (Inactifs)</div></div>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Date</th><th>ID</th><th>Prénom & Nom du Client</th><th>Type d'Opération</th><th>Montant</th><th>Effectué par</th></tr>
+                            </thead>
+                            <tbody id="table-historique-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <section id="page-corbeille" class="page-section">
+                    <h2 class="section-title">Corbeille / Comptes Clôturés</h2>
+                    <p class="section-subtitle">Comptes retirés par les agents ou administrateurs.</p>
+                    <div class="action-bar admin-action">
+                        <button class="add-btn" style="background-color: var(--rouge-dette);" onclick="purgerCorbeilleMensuelle()"><i class="fa-solid fa-file-excel"></i> Archiver & Purger (Fin de mois)</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr><th>Ancien Client</th><th>Adresse</th><th>Capital Remis</th><th>Dépôts</th><th>Dettes</th><th>Frais Carte</th><th>Solde Final Rendu</th><th class="admin-action">Action Admin</th></tr>
+                            </thead>
+                            <tbody id="table-corbeille-body"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modales -->
+    <div id="cardModal" class="modal-overlay" onclick="fermerCarteModal(event)">
+        <div class="card-modal-content" onclick="event.stopPropagation()">
+            <button class="btn-close-card" onclick="fermerCarteModal()"><i class="fa-solid fa-xmark"></i></button>
+            <div id="cardModalBody"></div>
+        </div>
+    </div>
+
+    <div id="actionModal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title" id="modalTitle">Titre</h3>
+            <div id="modalBody"></div>
+            <div class="modal-btn-group">
+                <button class="btn-cancel" onclick="fermerModal()">Annuler</button>
+                <button class="btn-confirm" id="modalConfirmBtn">Valider l'opération</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function formatMontantInput(input) {
+            let val = input.value.replace(/\D/g, '');
+            if (val !== "") { input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, "."); } 
+            else { input.value = ""; }
+        }
+
+        function btnEnTraitement(idBtn = 'modalConfirmBtn') {
+            let btn = document.getElementById(idBtn);
+            if(btn) {
+                btn.dataset.originalText = btn.innerText;
+                btn.innerText = "Traitement...";
+                btn.disabled = true;
+            }
+        }
+        function btnPret(idBtn = 'modalConfirmBtn') {
+            let btn = document.getElementById(idBtn);
+            if(btn) {
+                btn.innerText = btn.dataset.originalText || "Valider l'opération";
+                btn.disabled = false;
+            }
+        }
+
+        function fermerModal() {
+            document.getElementById('actionModal').style.display = 'none';
+            document.querySelector('#actionModal .modal-content').classList.remove('modal-large');
+            btnPret('modalConfirmBtn');
+        }
+
+        let inactivityTimeout;
+        function autoRetractSidebar() {
+            const sidebar = document.getElementById('appSidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            if (sidebar && sidebar.classList.contains('expanded')) { sidebar.classList.remove('expanded'); updateMiniLogoVisibility(); }
+            if (sidebar && sidebar.classList.contains('open')) { sidebar.classList.remove('open'); if (overlay) overlay.classList.remove('open'); }
+        }
+        function resetInactivityTimer() { clearTimeout(inactivityTimeout); inactivityTimeout = setTimeout(autoRetractSidebar, 5000); }
+        ['mousemove', 'mousedown', 'keypress', 'touchstart', 'scroll'].forEach(evt => { window.addEventListener(evt, resetInactivityTimer); });
+
+        const DB_NAME = 'bwakisa_offline_db'; const DB_VERSION = 1; const STORE_NAME = 'sync_queue'; let localDB;
+        function initIndexedDB() {
+            return new Promise((resolve, reject) => {
+                let request = indexedDB.open(DB_NAME, DB_VERSION);
+                request.onupgradeneeded = (e) => { localDB = e.target.result; if (!localDB.objectStoreNames.contains(STORE_NAME)) { localDB.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true }); } };
+                request.onsuccess = (e) => { localDB = e.target.result; resolve(localDB); };
+                request.onerror = (e) => reject(e.target.error);
+            });
+        }
+
+        async function addActionToQueue(actionParams) {
+            if (!localDB) await initIndexedDB();
+            return new Promise((resolve, reject) => { let transaction = localDB.transaction([STORE_NAME], 'readwrite'); let store = transaction.objectStore(STORE_NAME); let request = store.add(actionParams); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
+        }
+        async function getQueue() {
+            if (!localDB) await initIndexedDB();
+            return new Promise((resolve, reject) => { let transaction = localDB.transaction([STORE_NAME], 'readonly'); let store = transaction.objectStore(STORE_NAME); let request = store.getAll(); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+        }
+        async function removeFromQueue(id) {
+            if (!localDB) await initIndexedDB();
+            return new Promise((resolve, reject) => { let transaction = localDB.transaction([STORE_NAME], 'readwrite'); let store = transaction.objectStore(STORE_NAME); let request = store.delete(id); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
+        }
+
+        let notifTimeoutLocal;
+        function showNotification(msg, type = 'success') {
+            const band = document.getElementById('notification-band'); const text = document.getElementById('notification-text'); text.innerText = msg;
+            band.className = 'show'; if(type === 'success') band.classList.add('bg-success'); if(type === 'error') band.classList.add('bg-error'); if(type === 'warning') band.classList.add('bg-warning');
+            clearTimeout(notifTimeoutLocal); notifTimeoutLocal = setTimeout(() => { band.classList.remove('show'); }, 3000); 
+        }
+
+        let idMapping = {}; 
+        async function syncOfflineData() {
+            const queue = await getQueue(); if (queue.length === 0) return;
+            showNotification("Connexion rétablie. Synchronisation des données...", "warning");
+            for (let task of queue) {
+                try {
+                    let { table, operation, payload, matchField, matchValue, id: taskId } = task;
+                    if (payload && payload.compte_id && idMapping[payload.compte_id]) payload.compte_id = idMapping[payload.compte_id];
+                    if (payload && payload.dette_id && idMapping[payload.dette_id]) payload.dette_id = idMapping[payload.dette_id];
+                    if (payload && payload.employe_id && idMapping[payload.employe_id]) payload.employe_id = idMapping[payload.employe_id];
+                    let tempId = payload ? payload.id : null; if (operation === 'insert' && payload) delete payload.id; 
+                    let request = supabaseClient.from(table); let res;
+                    if (operation === 'insert') { res = await request.insert([payload]).select(); if (res.data && res.data.length > 0 && tempId) { idMapping[tempId] = res.data[0].id; } } 
+                    else if (operation === 'update') { if (matchValue && idMapping[matchValue]) matchValue = idMapping[matchValue]; res = await request.update(payload).eq(matchField, matchValue); } 
+                    else if (operation === 'delete') { if (matchValue && idMapping[matchValue]) matchValue = idMapping[matchValue]; res = await request.delete().eq(matchField, matchValue); }
+                    if (!res.error) { await removeFromQueue(taskId); } else { console.error("Erreur:", res.error); }
+                } catch (err) { console.error("Erreur critique:", err); }
+            }
+            showNotification("Toutes les données ont été synchronisées.", "success"); await actualiserInterface();
+        }
+
+        async function executeMutation(table, operation, payload, matchField = null, matchValue = null) {
+            if (!navigator.onLine) {
+                let tempId = Date.now() + Math.floor(Math.random() * 1000);
+                let finalPayload = payload ? { ...payload } : null;
+                if (operation === 'insert' && finalPayload) { finalPayload.id = tempId; if (db[table]) db[table].push(finalPayload); } 
+                else if (operation === 'update' && db[table]) { let index = db[table].findIndex(item => item[matchField] === matchValue); if (index !== -1) db[table][index] = { ...db[table][index], ...payload }; } 
+                else if (operation === 'delete' && db[table]) { db[table] = db[table].filter(item => item[matchField] !== matchValue); }
+                await addActionToQueue({ table, operation, payload: finalPayload, matchField, matchValue });
+                showNotification("Hors Ligne : Action enregistrée.", "warning");
+                return { data: finalPayload ? [finalPayload] : [], error: null };
+            }
+            try {
+                let request = supabaseClient.from(table);
+                if (operation === 'insert') return await request.insert([payload]).select();
+                else if (operation === 'update') return await request.update(payload).eq(matchField, matchValue).select();
+                else if (operation === 'delete') return await request.delete().eq(matchField, matchValue);
+            } catch (err) { return { data: null, error: err }; }
+        }
+
+        document.addEventListener('input', function(e) { if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'text' && !e.target.classList.contains('input-montant')) { let val = e.target.value; if (val.length > 0) { e.target.value = val.charAt(0).toUpperCase() + val.slice(1); } } });
+
+        function safeNum(val) { if (val === null || val === undefined) return 0; let cleanStr = val.toString().replace(/\./g, ""); let parsed = parseFloat(cleanStr.replace(/[^0-9-]+/g, "")); return isNaN(parsed) ? 0 : parsed; }
+
+        const SUPABASE_URL = "https://mfxdrozdnwhlvirevnuk.supabase.co"; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meGRyb3pkbndobHZpcmV2bnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTkwNzIsImV4cCI6MjEwNTMzNTA3Mn0.txYO0pC2VXpxwWQxUDMykHJspm4G4qD_TfoyA1D23Hs";
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        let db = { comptes: [], transactions: [], dettes_hc: [], transactions_hc: [], boutique_employes: [], boutique_historique: [] };
+        let currentRole = ""; let evolutionChartInstance = null; let selectedCompteId = null; let currentPage = 1; const itemsPerPage = 10;
+        let currentPageHistorique = 1; const itemsPerPageHistorique = 30;
+
+        window.addEventListener('DOMContentLoaded', async () => {
+            await initIndexedDB(); 
+            const today = new Date().toISOString().split('T')[0];
+            const fDay = document.getElementById('filterDay'); const fMonth = document.getElementById('filterMonth'); const fYear = document.getElementById('filterYear');
+            if(fDay) fDay.value = today; if(fMonth) fMonth.value = today.substring(0, 7); if(fYear) fYear.value = today.substring(0, 4);
+            updateMiniLogoVisibility(); resetInactivityTimer();
+            window.addEventListener('online', async () => { await syncOfflineData(); });
+            window.addEventListener('offline', () => { showNotification("Connexion perdue. Mode hors ligne activé.", "error"); });
+            if (navigator.onLine) { await syncOfflineData(); }
+        });
+
+        function toggleSidebarPC() { if (window.innerWidth > 992) { document.getElementById('appSidebar').classList.toggle('expanded'); updateMiniLogoVisibility(); setTimeout(() => { if(evolutionChartInstance) renderEvolutionChart(); }, 350); resetInactivityTimer(); } }
+        function toggleSidebarAction() { if (window.innerWidth <= 992) { document.getElementById('appSidebar').classList.toggle('open'); document.getElementById('sidebarOverlay').classList.toggle('open'); resetInactivityTimer(); } else { toggleSidebarPC(); } }
+        function toggleSidebarMenuMobile() { document.getElementById('appSidebar').classList.remove('open'); document.getElementById('sidebarOverlay').classList.remove('open'); }
+        function updateMiniLogoVisibility() {
+            const sidebar = document.getElementById('appSidebar'); const miniLogo = document.getElementById('miniLogoIcon'); const brandText = document.querySelector('.brand-text'); const brandSub = document.querySelector('.brand-sub');
+            if (sidebar.classList.contains('expanded') || window.innerWidth <= 992) { if(miniLogo) miniLogo.style.display = "none"; if(brandText) brandText.style.display = "inline"; if(brandSub) brandSub.style.display = "block"; } 
+            else { if(miniLogo) miniLogo.style.display = "block"; if(brandText) brandText.style.display = "none"; if(brandSub) brandSub.style.display = "none"; }
+        }
+        window.addEventListener('resize', updateMiniLogoVisibility);
+
+        function genererIdentifiantClient(compteId) { let index = db.comptes.concat().sort((a,b) => a.id - b.id).findIndex(c => c.id === compteId); if(index === -1) return "BC" + String(compteId).padStart(4, '0'); return "BC" + String(index + 1).padStart(4, '0'); }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const selectedRole = document.getElementById('role').value; const inputUsername = document.getElementById('username').value.trim(); const inputPassword = document.getElementById('password').value; const submitBtn = document.getElementById('loginSubmitBtn');
+            submitBtn.innerText = "Vérification..."; submitBtn.disabled = true;
+            try {
+                const { data, error } = await supabaseClient.from('authatification').select('*').eq('nom', inputUsername).eq('mot_de_passe', inputPassword).eq('fonction', selectedRole).maybeSingle();
+                if (error || !data) { alert("Identifiants incorrects."); submitBtn.innerText = "Accéder aux Coffres"; submitBtn.disabled = false; return; }
+                currentRole = data.fonction; document.getElementById('session-user-name').innerText = data.nom;
+                if (currentRole === 'admin') { document.getElementById('session-user-role').innerText = "Directeur"; document.querySelectorAll('.admin-action').forEach(el => { if(el.tagName === 'TH' || el.tagName === 'TD') el.style.display = "table-cell"; else el.style.display = "block"; }); } 
+                else { document.getElementById('session-user-role').innerText = "Agent"; document.querySelectorAll('.admin-action').forEach(el => el.style.display = "none"); }
+                document.getElementById('loginScreen').style.display = 'none'; document.getElementById('mainApp').style.display = 'flex';
+                await actualiserInterface(); switchPage('dashboard');
+            } catch (err) { if (!navigator.onLine) alert("Hors ligne."); else alert("Erreur réseau."); } 
+            finally { submitBtn.innerText = "Accéder aux Coffres"; submitBtn.disabled = false; }
+        }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active')); document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
+            document.getElementById('page-' + pageId).classList.add('active');
+            const activeMenu = Array.from(document.querySelectorAll('.menu-item')).find(m => m.getAttribute('onclick').includes(pageId));
+            if(activeMenu) { activeMenu.classList.add('active'); document.getElementById('current-page-title').innerText = activeMenu.querySelector('.menu-text') ? activeMenu.querySelector('.menu-text').innerText.trim() : activeMenu.innerText.trim(); }
+            toggleSidebarMenuMobile();
+        }
+        function handleLogout() { window.location.reload(); }
+
+        function toggleDateInputs() {
+            const type = document.getElementById('invFilterType').value;
+            document.getElementById('ctrl-day').style.display = type === 'day' ? 'block' : 'none';
+            document.getElementById('ctrl-month').style.display = type === 'month' ? 'block' : 'none';
+            document.getElementById('ctrl-year').style.display = type === 'year' ? 'block' : 'none';
+            actualiserInterface();
+        }
+
+        function verifierFiltreDate(itemDate) {
+            if (!itemDate) return false; const type = document.getElementById('invFilterType').value;
+            if (type === 'all') return true; if (type === 'day') return itemDate === document.getElementById('filterDay').value;
+            if (type === 'month') return itemDate.substring(0, 7) === document.getElementById('filterMonth').value;
+            if (type === 'year') return itemDate.substring(0, 4) === document.getElementById('filterYear').value; return true;
+        }
+
+        function calculerStatsCompte(compteId) {
+            const txs = db.transactions.filter(t => t.compte_id === compteId);
+            const totalDepots = txs.filter(t => t.type === 'depot').reduce((a, b) => a + safeNum(b.montant), 0);
+            const totalPretsBrut = txs.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0);
+            const totalRemboursements = txs.filter(t => t.type === 'remboursement').reduce((a, b) => a + safeNum(b.montant), 0);
+            const totalPrets = Math.max(0, totalPretsBrut - totalRemboursements);
+            return { totalDepots, totalPrets, totalPretsBrut, totalRemboursements };
+        }
+
+        // ==========================================
+        // FETCH PAGINÉ ET FILTRE 2 MOIS
+        // ==========================================
+        async function fetchPaginatedData(table, dateColumn = null, minDate = null) {
+            let allData = []; let from = 0; const step = 30; let hasMore = true;
+            while (hasMore) {
+                let to = from + step - 1;
+                let query = supabaseClient.from(table).select('*').order('id', { ascending: false }).range(from, to);
+                if (dateColumn && minDate) { query = query.gte(dateColumn, minDate); }
+                const { data, error } = await query;
+                if (error) { console.error("Erreur de pagination", table, error); break; }
+                if (data && data.length > 0) {
+                    allData = allData.concat(data);
+                    if (data.length < step) hasMore = false; else from += step;
+                } else { hasMore = false; }
+            }
+            return allData;
+        }
+
+        async function fetchAllData() {
+            if (!navigator.onLine) return; 
+            try {
+                const date2Mois = new Date(); date2Mois.setMonth(date2Mois.getMonth() - 2);
+                const minDateIso = date2Mois.toISOString().split('T')[0];
+
+                const resComptes = await fetchPaginatedData('comptes', 'date', minDateIso); 
+                if (resComptes) db.comptes = resComptes;
+
+                const resTx = await fetchPaginatedData('transactions', 'date', minDateIso); 
+                if (resTx) db.transactions = resTx;
+
+                try { 
+                    const resDettesHC = await fetchPaginatedData('dettes_hors_carte', 'date_creation', minDateIso); 
+                    if (resDettesHC) db.dettes_hc = resDettesHC; 
+                    const resTxHC = await fetchPaginatedData('transactions_hors_carte', 'date', minDateIso); 
+                    if (resTxHC) db.transactions_hc = resTxHC; 
+                } catch (e) {}
+
+                try { 
+                    const resBoutique = await fetchPaginatedData('boutique_employes'); 
+                    if (resBoutique) db.boutique_employes = resBoutique; 
+                    const resBoutiqueHist = await fetchPaginatedData('boutique_historique'); 
+                    if (resBoutiqueHist) db.boutique_historique = resBoutiqueHist; 
+                } catch (e) {}
+            } catch (err) {}
+        }
+
+        async function actualiserInterface() {
+            await fetchAllData(); renderInventaire(); renderComptes(); renderDettesHC(); renderBoutique(); renderHistorique(); renderCorbeille(); renderEvolutionChart();
+            if (selectedCompteId && document.getElementById('cardModal').style.display === 'flex') { chargerCartePhysique(selectedCompteId); }
+        }
+
+        function renderInventaire() {
+            let totalDepots = db.transactions.filter(t => t.type === 'depot').reduce((a, b) => a + safeNum(b.montant), 0);
+            let totalPrets = db.transactions.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0) - db.transactions.filter(t => t.type === 'remboursement').reduce((a, b) => a + safeNum(b.montant), 0);
+            totalPrets = Math.max(0, totalPrets);
+            let cartesPayeesActifs = db.comptes.filter(c => c.statut === 'actif' && c.carte_payee).length;
+            let cartesPayeesClotures = db.comptes.filter(c => c.statut === 'corbeille').length; 
+            let revenusCartes = (cartesPayeesActifs + cartesPayeesClotures) * 500;
+            let totalInitiaux = db.comptes.filter(c => c.statut === 'actif').reduce((a, b) => a + safeNum(b.montant_initial), 0);
+            let caisse = totalDepots - totalPrets - totalInitiaux + revenusCartes;
+
+            document.getElementById('stat-depots').innerText = totalDepots.toLocaleString('de-DE') + " FC"; document.getElementById('stat-prets').innerText = totalPrets.toLocaleString('de-DE') + " FC";
+            document.getElementById('stat-cartes').innerText = revenusCartes.toLocaleString('de-DE') + " FC"; document.getElementById('stat-initial').innerText = totalInitiaux.toLocaleString('de-DE') + " FC"; document.getElementById('stat-caisse').innerText = caisse.toLocaleString('de-DE') + " FC";
+
+            let filteredTxs = db.transactions.filter(t => verifierFiltreDate(t.date)); let filteredComptes = db.comptes.filter(c => verifierFiltreDate(c.date));
+            let fTotalDepots = filteredTxs.filter(t => t.type === 'depot').reduce((a, b) => a + safeNum(b.montant), 0);
+            let fTotalPrets = filteredTxs.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0) - filteredTxs.filter(t => t.type === 'remboursement').reduce((a, b) => a + safeNum(b.montant), 0);
+            fTotalPrets = Math.max(0, fTotalPrets);
+            let fCartesPayeesActifs = filteredComptes.filter(c => c.statut === 'actif' && c.carte_payee).length;
+            let fCartesPayeesClotures = filteredComptes.filter(c => c.statut === 'corbeille').length; 
+            let fRevenusCartes = (fCartesPayeesActifs + fCartesPayeesClotures) * 500;
+            let fTotalInitiaux = filteredComptes.filter(c => c.statut === 'actif').reduce((a, b) => a + safeNum(b.montant_initial), 0);
+            let fCaisse = fTotalDepots - fTotalPrets - fTotalInitiaux + fRevenusCartes;
+            let fTotalSoldeRendu = filteredComptes.filter(c => c.statut === 'corbeille').reduce((sum, c) => { let stats = calculerStatsCompte(c.id); let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 500); return sum + soldeFinal; }, 0);
+
+            document.getElementById('gl-stat-depots').innerText = fTotalDepots.toLocaleString('de-DE') + " FC"; document.getElementById('gl-stat-prets').innerText = fTotalPrets.toLocaleString('de-DE') + " FC";
+            document.getElementById('gl-stat-initial').innerText = fTotalInitiaux.toLocaleString('de-DE') + " FC"; document.getElementById('gl-stat-caisse').innerText = fCaisse.toLocaleString('de-DE') + " FC"; document.getElementById('gl-stat-solde-rendu').innerText = fTotalSoldeRendu.toLocaleString('de-DE') + " FC";
+        }
+
+        function renderEvolutionChart() {
+            const canvas = document.getElementById('evolutionChart'); if (!canvas) return;
+            const ctx = canvas.getContext('2d'); const periodStr = document.getElementById('chartPeriodFilter').value;
+            let allDates = new Set(); db.transactions.forEach(t => { if(t.date) allDates.add(t.date) }); db.comptes.forEach(c => { if(c.date) allDates.add(c.date) });
+            let datesTriees = Array.from(allDates).sort();
+            let runningDepots = 0, runningPrets = 0, runningInitial = 0, runningCartes = 0; let chartData = [];
+            datesTriees.forEach(date => {
+                let txsOnDate = db.transactions.filter(t => t.date === date); let comptesOnDate = db.comptes.filter(c => c.date === date);
+                runningDepots += txsOnDate.filter(t => t.type === 'depot').reduce((a,b) => a + safeNum(b.montant), 0); 
+                runningPrets += txsOnDate.filter(t => t.type === 'emprunt').reduce((a,b) => a + safeNum(b.montant), 0) - txsOnDate.filter(t => t.type === 'remboursement').reduce((a,b) => a + safeNum(b.montant), 0);
+                if (runningPrets < 0) runningPrets = 0;
+                runningInitial += comptesOnDate.reduce((a,b) => a + safeNum(b.montant_initial), 0); runningCartes += comptesOnDate.length * 500; 
+                chartData.push({ date: date, depots: runningDepots, prets: runningPrets, initial: runningInitial, cartes: runningCartes, caisse: runningDepots - runningPrets - runningInitial + runningCartes });
+            });
+            let filteredData = chartData;
+            if (periodStr !== 'all') { const days = parseInt(periodStr); const cutoffDate = new Date(); cutoffDate.setDate(cutoffDate.getDate() - days); filteredData = chartData.filter(d => d.date >= cutoffDate.toISOString().split('T')[0]); }
+            let labels = filteredData.map(d => { let p = d.date.split('-'); return p.length===3 ? `${p[2]}/${p[1]}` : d.date; });
+            if (evolutionChartInstance) { evolutionChartInstance.destroy(); }
+            evolutionChartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: [ { label: 'Dépôts', data: filteredData.map(d => d.depots), borderColor: '#10b981', backgroundColor: '#10b981', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 2 }, { label: 'Dettes', data: filteredData.map(d => d.prets), borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 2 }, { label: 'Caisse', data: filteredData.map(d => d.caisse), borderColor: '#10b981', backgroundColor: '#10b981', borderWidth: 3, fill: false, tension: 0.4, pointRadius: 3 } ] },
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } }, x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } } }, plugins: { legend: { position: 'bottom', labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 8 } } } }
+            });
+        }
+
+        function rechercherComptes() { currentPage = 1; renderComptes(); }
+        function changerPage(direction) { currentPage += direction; renderComptes(); }
+
+        function renderComptes() {
+            const tbody = document.getElementById('table-comptes-body'); tbody.innerHTML = "";
+            const searchTxt = document.getElementById('searchComptes').value.toLowerCase();
+            let comptesActifs = db.comptes.filter(c => c.statut === 'actif').filter(c => !searchTxt || c.nom.toLowerCase().includes(searchTxt) || c.prenom.toLowerCase().includes(searchTxt) || c.adresse.toLowerCase().includes(searchTxt)).sort((a, b) => b.id - a.id);
+            const totalPages = Math.ceil(comptesActifs.length / itemsPerPage) || 1;
+            if (currentPage > totalPages) currentPage = totalPages; if (currentPage < 1) currentPage = 1;
+            const pageItems = comptesActifs.slice((currentPage - 1) * itemsPerPage, ((currentPage - 1) * itemsPerPage) + itemsPerPage);
+
+            pageItems.forEach(c => {
+                let stats = calculerStatsCompte(c.id); let capaciteMax = safeNum(c.montant_initial) * 31; let isPlein = stats.totalDepots >= capaciteMax;
+                let tr = document.createElement('tr'); tr.style.cursor = "pointer"; tr.onclick = () => ouvrirCarteModal(c.id);
+                tr.innerHTML = `
+                    <td style="color:var(--texte-blanc); font-weight:700;">${genererIdentifiantClient(c.id)}</td>
+                    <td>${c.prenom}</td><td><strong>${c.nom}</strong></td><td>${c.adresse}</td>
+                    <td>${safeNum(c.montant_initial).toLocaleString('de-DE')} FC</td>
+                    <td class="${isPlein ? 'val-dette' : 'val-depot'}">+ ${stats.totalDepots.toLocaleString('de-DE')} FC</td>
+                    <td class="val-dette">- ${stats.totalPrets.toLocaleString('de-DE')} FC</td>
+                    <td>${c.carte_payee ? '<span class="badge badge-success">Payée</span>' : '<span class="badge badge-danger">Non Payée</span>'}</td>
+                    <td>
+                        <div class="action-icons" onclick="event.stopPropagation();">
+                            <button class="add-icon" onclick="ouvrirModalTransaction(${c.id}, 'depot', ${isPlein})" title="Ajouter Dépôt"><i class="fa-solid fa-arrow-down"></i></button>
+                            <button class="delete-icon" onclick="ouvrirModalTransaction(${c.id}, 'emprunt', false)" title="Accorder / Rembourser Emprunt"><i class="fa-solid fa-hand-holding-dollar"></i></button>
+                            <button class="add-icon" style="color:var(--bleu-accent);" onclick="ouvrirModalTransaction(${c.id}, 'remboursement', false)" title="Rembourser un Prêt"><i class="fa-solid fa-handshake-angle"></i></button>
+                            <button class="edit-icon" onclick="ouvrirModalModificationCompte(${c.id})" title="Modifier / Corriger Erreur"><i class="fa-solid fa-pen-to-square"></i></button>
+                            <button style="color:white;" onclick="ouvrirModalCloture(${c.id})" title="Clôturer Compte"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+            let paginationRow = document.createElement('tr');
+            paginationRow.innerHTML = `<td colspan="9" style="text-align:center; padding: 20px; border-bottom: none;"><button class="btn-cancel" style="width: auto; padding: 8px 16px; margin-right: 15px;" ${currentPage <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="event.stopPropagation(); changerPage(-1)"><i class="fa-solid fa-chevron-left"></i> Précédent</button><span style="font-weight: bold; color: var(--texte-blanc);">Page ${currentPage} sur ${totalPages}</span><button class="btn-cancel" style="width: auto; padding: 8px 16px; margin-left: 15px;" ${currentPage >= totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="event.stopPropagation(); changerPage(1)">Suivant <i class="fa-solid fa-chevron-right"></i></button></td>`;
+            tbody.appendChild(paginationRow);
+        }
+
+        // ==========================================
+        // Création, Modification, Transaction, Clôture
+        // ==========================================
+        function ouvrirModalCompte() {
+            document.getElementById('modalTitle').innerText = "Créer un nouveau compte";
+            document.getElementById('modalBody').innerHTML = `
+                <div class="form-group"><label>Prénom</label><input type="text" id="newComptePrenom" required></div>
+                <div class="form-group"><label>Nom</label><input type="text" id="newCompteNom" required></div>
+                <div class="form-group"><label>Adresse</label><input type="text" id="newCompteAdresse" required></div>
+                <div class="form-group"><label>Montant Initial (FC)</label><input type="text" id="newCompteMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>
+            `;
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block';
+            btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
+                let prenom = document.getElementById('newComptePrenom').value.trim(); let nom = document.getElementById('newCompteNom').value.trim();
+                let adresse = document.getElementById('newCompteAdresse').value.trim(); let montant = safeNum(document.getElementById('newCompteMontant').value);
+                if(!prenom || !nom || montant <= 0) return alert("Remplissez tout correctement.");
+
+                btnEnTraitement();
+                const { error } = await executeMutation('comptes', 'insert', { prenom, nom, adresse, montant_initial: montant, statut: 'actif', carte_payee: false, date: new Date().toISOString().split('T')[0] });
+                
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { fermerModal(); await actualiserInterface(); }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        /* MODIFICATION / CORRECTION EN CAS D'ERREUR DU COMPTE CLIENT */
+        function ouvrirModalModificationCompte(compteId) {
+            const compte = db.comptes.find(c => c.id === compteId);
+            if (!compte) return alert("Compte non trouvé");
+            
+            document.getElementById('modalTitle').innerText = `Corriger / Modifier Compte (${genererIdentifiantClient(compte.id)})`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="background: rgba(239, 68, 68, 0.1); border:1px solid var(--rouge-dette); padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#fca5a5;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> Utilisez ce formulaire pour corriger les erreurs de saisie sur ce compte client.
+                </div>
+                <div class="form-group"><label>Prénom Client</label><input type="text" id="editComptePrenom" value="${compte.prenom}" required></div>
+                <div class="form-group"><label>Nom Client</label><input type="text" id="editCompteNom" value="${compte.nom}" required></div>
+                <div class="form-group"><label>Adresse</label><input type="text" id="editCompteAdresse" value="${compte.adresse}" required></div>
+                <div class="form-group"><label>Montant Initial (FC)</label><input type="text" id="editCompteMontant" class="input-montant" value="${safeNum(compte.montant_initial).toLocaleString('de-DE')}" oninput="formatMontantInput(this)" required></div>
+            `;
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block';
+            btn.innerText = "Sauvegarder les modifications";
+            btn.onclick = async () => {
+                let prenom = document.getElementById('editComptePrenom').value.trim();
+                let nom = document.getElementById('editCompteNom').value.trim();
+                let adresse = document.getElementById('editCompteAdresse').value.trim();
+                let mnt = safeNum(document.getElementById('editCompteMontant').value);
+
+                if(!prenom || !nom || mnt <= 0) return alert("Veuillez saisir des informations valides.");
+
+                btnEnTraitement();
+                const { error } = await executeMutation('comptes', 'update', { prenom, nom, adresse, montant_initial: mnt }, 'id', compteId);
+
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { 
+                    showNotification("Compte mis à jour avec succès !", "success");
+                    fermerModal(); 
+                    await actualiserInterface(); 
+                }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        /* NOUVEL EMPRUNT AVEC OPTION DE REMBOURSEMENT INTÉGRÉE */
+  function ouvrirModalTransaction(compteId, type, isPlein) {
+            if (type === 'depot' && isPlein) return alert("La carte est déjà pleine pour les dépôts.");
+            
+            let modalTitleText = "Nouveau Dépôt";
+            let optionTypeHtml = "";
+            
+            if (type === 'emprunt' || type === 'remboursement') {
+                modalTitleText = "Opération Emprunt / Remboursement";
+                optionTypeHtml = `
+                    <div class="form-group">
+                        <label>Nature de l'opération</label>
+                        <select id="txTypeSelect" style="background-color: var(--bg-principal); color: white; border: 1px solid var(--border-couleur); padding: 10px; border-radius: 8px; width: 100%;">
+                            <option value="emprunt" ${type === 'emprunt' ? 'selected' : ''}>⚠️ Accorder Emprunt (Augmenter la dette)</option>
+                            <option value="remboursement" ${type === 'remboursement' ? 'selected' : ''}>✅ Remboursement Emprunt (Diminuer la dette)</option>
+                        </select>
+                    </div>
+                `;
+            }
+
+            document.getElementById('modalTitle').innerText = modalTitleText;
+            document.getElementById('modalBody').innerHTML = `
+                ${optionTypeHtml}
+                <div class="form-group"><label>Montant (FC)</label><input type="text" id="txMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>
+            `;
+            
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block';
+            btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
+                let montant = safeNum(document.getElementById('txMontant').value);
+                if(montant <= 0) return alert("Montant invalide.");
+                
+                let selectedType = type;
+                let selectEl = document.getElementById('txTypeSelect');
+                if (selectEl) { selectedType = selectEl.value; }
+
+                // Contrôle de la capacité maximale des dépôts (montant_initial * 31) ET RÈGLE DE MODULO
+                if (selectedType === 'depot') {
+                    let stats = calculerStatsCompte(compteId);
+                    const compte = db.comptes.find(c => c.id === compteId);
+                    
+                    // NOUVELLE CONDITION MODULO : Le montant doit être un multiple exact du montant initial
+                    if (montant % safeNum(compte.montant_initial) !== 0) {
+                        return alert(`Dépôt refusé. Le montant doit être un multiple exact du montant initial (${safeNum(compte.montant_initial).toLocaleString('de-DE')} FC).`);
+                    }
+
+                    let capaciteMax = safeNum(compte.montant_initial) * 31;
+                    if ((stats.totalDepots + montant) > capaciteMax) {
+                        let reste = capaciteMax - stats.totalDepots;
+                        return alert(`Opération refusée. Le total des dépôts ne peut pas dépasser ${capaciteMax.toLocaleString('de-DE')} FC.\nVous ne pouvez déposer que ${reste.toLocaleString('de-DE')} FC au maximum.`);
+                    }
+                }
+
+               // Vérification si le remboursement dépasse la dette actuelle
+                if (selectedType === 'remboursement') {
+                    let stats = calculerStatsCompte(compteId);
+                    if (stats.totalPrets <= 0) {
+                        return alert("Ce client n'a aucune dette en cours à rembourser.");
+                    }
+                    if (montant > stats.totalPrets) {
+                        return alert(`Le montant remboursé (${montant.toLocaleString('de-DE')} FC) dépasse la dette actuelle (${stats.totalPrets.toLocaleString('de-DE')} FC).`);
+                    }
+                }
+
+                // NOUVELLE RÈGLE : L'emprunt doit être inférieur au solde rendu du compte concerné
+                if (selectedType === 'emprunt') {
+                    let stats = calculerStatsCompte(compteId);
+                    const compte = db.comptes.find(c => c.id === compteId);
+                    
+                    // Calcul du solde rendu spécifique à ce compte
+                    let soldeRendu = stats.totalDepots - stats.totalPrets - safeNum(compte.montant_initial);
+                    
+                    // Déduction des frais de carte si elle n'est pas encore payée
+                    if (!compte.carte_payee) {
+                        soldeRendu -= 500;
+                    }
+
+                    // Validation : le montant doit être strictement inférieur au rendu
+                    if (montant >= soldeRendu) {
+                        return alert(`Opération refusée. Le montant de l'emprunt (${montant.toLocaleString('de-DE')} FC) doit être inférieur au rendu disponible de ce compte (${soldeRendu.toLocaleString('de-DE')} FC).`);
+                    }
+                }
+
+                btnEnTraitement();
+                const { error } = await executeMutation('transactions', 'insert', { 
+                    compte_id: compteId, 
+                    type: selectedType, 
+                    montant: montant, 
+                    date: new Date().toISOString().split('T')[0], 
+                    cree_par: document.getElementById('session-user-name').innerText 
+                });
+                
+                if(error) { 
+                    btnPret(); 
+                    alert("Erreur : " + error.message); 
+                } else { 
+                    fermerModal(); 
+                    await actualiserInterface(); 
+                }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function ouvrirModalCloture(compteId) {
+            const compte = db.comptes.find(c => c.id === compteId);
+            if (!compte) return;
+            const stats = calculerStatsCompte(compteId);
+            
+            let soldeRendu = stats.totalDepots - stats.totalPrets - safeNum(compte.montant_initial);
+            let fraisCarteHtml = "";
+            
+            if (!compte.carte_payee) {
+                soldeRendu -= 500;
+                fraisCarteHtml = `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Frais Carte non payée :</span> <strong style="color:var(--rouge-dette);">- 500 FC</strong></div>`;
+            }
+
+            document.getElementById('modalTitle').innerText = "Clôturer le compte";
+            document.getElementById('modalBody').innerHTML = `
+                <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; border: 1px solid var(--border-couleur);">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Prénom :</span> <strong style="color:var(--texte-blanc);">${compte.prenom}</strong></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Nom :</span> <strong style="color:var(--texte-blanc);">${compte.nom}</strong></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:10px;"><span>Adresse :</span> <strong style="color:var(--texte-blanc);">${compte.adresse}</strong></div>
+                    <hr style="border-color:var(--border-couleur); margin:10px 0;">
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Total Entrée :</span> <strong style="color:var(--vert-finance);">${stats.totalDepots.toLocaleString('de-DE')} FC</strong></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Total Dette :</span> <strong style="color:var(--rouge-dette);">${stats.totalPrets.toLocaleString('de-DE')} FC</strong></div>
+                    ${fraisCarteHtml}
+                    <hr style="border-color:var(--border-couleur); margin:10px 0;">
+                    <div style="display:flex; justify-content:space-between; font-size:16px;"><span>Total Rendu :</span> <strong style="color:${soldeRendu >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'};">${soldeRendu.toLocaleString('de-DE')} FC</strong></div>
+                </div>
+                <p style="color:var(--rouge-dette); text-align: center; font-weight: bold;">Confirmez-vous la mise à la corbeille de ce compte ?</p>
+            `;
+            
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block';
+            btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
+                btnEnTraitement();
+                const { error } = await executeMutation('comptes', 'update', { statut: 'corbeille' }, 'id', compteId);
+                
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { fermerModal(); fermerCarteModal(); await actualiserInterface(); }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        // ==========================================
+        // CARTE NUMÉRIQUE CLIENT (ALTERNANCE BLEU / ROUGE PAR DÉPÔT)
+        // ==========================================
+        function ouvrirCarteModal(compteId) {
+            selectedCompteId = compteId;
+            chargerCartePhysique(compteId);
+            document.getElementById('cardModal').style.display = 'flex';
+        }
+
+        function fermerCarteModal(e) {
+            if (e && e.target !== document.getElementById('cardModal') && !e.target.classList.contains('btn-close-card') && !e.target.parentElement.classList.contains('btn-close-card')) return;
+            document.getElementById('cardModal').style.display = 'none';
+            selectedCompteId = null;
+        }
+
+        function chargerCartePhysique(compteId) {
+            const compte = db.comptes.find(c => c.id === compteId);
+            if (!compte) return;
+
+            const stats = calculerStatsCompte(compteId);
+            const mntInitial = safeNum(compte.montant_initial);
+            const identifiant = genererIdentifiantClient(compte.id);
+
+            // Récupération de tous les dépôts dans l'ordre chronologique
+            const txDepots = db.transactions
+                .filter(t => t.compte_id === compteId && t.type === 'depot')
+                .sort((a, b) => a.id - b.id);
+
+            // Tableau pour les 31 cases
+            let boxColors = Array(31).fill(null);
+            let currentBoxIndex = 0;
+
+            // Parcours de chaque dépôt pour appliquer la couleur alternée (1er dépôt = Bleu, 2ème = Rouge, 3ème = Bleu...)
+            txDepots.forEach((tx, depositIndex) => {
+                const colorClass = (depositIndex % 2 === 0) ? 'filled-blue' : 'filled-red';
+                const nbCasesPourCeDepot = Math.floor(safeNum(tx.montant) / mntInitial);
+
+                for (let i = 0; i < nbCasesPourCeDepot; i++) {
+                    if (currentBoxIndex < 31) {
+                        boxColors[currentBoxIndex] = colorClass;
+                        currentBoxIndex++;
+                    }
+                }
+            });
+
+            // Construction de la grille de 31 cases
+            let boxesHtml = "";
+            for (let i = 1; i <= 31; i++) {
+                let colorClass = boxColors[i - 1] || "";
+                boxesHtml += `
+                    <div class="card-box ${colorClass}">
+                        <span class="box-num">${i}</span>
+                        <span class="box-stamp"><i class="fa-solid fa-check"></i></span>
+                        <span class="box-label">${mntInitial.toLocaleString('de-DE')}</span>
+                    </div>
+                `;
+            }
+
+            let bodyHtml = `
+                <div class="card-header-top">
+                    <div class="card-logo-area">
+                        <span class="card-title-main"><i class="fa-solid fa-vault"></i> BWAKISA</span>
+                        <span class="card-title-sub">BON PRIX</span>
+                        <span class="card-subtitle">CARTE DE DÉPÔT NUMÉRIQUE</span>
+                    </div>
+                    <div class="card-meta-info">
+                        <div>ID: <strong>${identifiant}</strong></div>
+                        <div>Client: <strong>${compte.prenom} ${compte.nom}</strong></div>
+                        <div>Adresse: <strong>${compte.adresse}</strong></div>
+                        <div>Initial: <strong>${mntInitial.toLocaleString('de-DE')} FC</strong></div>
+                    </div>
+                </div>
+
+                <div class="card-grid-31">${boxesHtml}</div>
+
+                <div class="card-footer-summary">
+                    <div>Total Dépôts: <strong class="val-depot">${stats.totalDepots.toLocaleString('de-DE')} FC</strong></div>
+                    <div>Emprunt/Dette: <strong class="val-dette">${stats.totalPrets.toLocaleString('de-DE')} FC</strong></div>
+                    <div>Frais Carte: <strong>${compte.carte_payee ? 'PAYÉE (1000 FC)' : 'NON PAYÉE'}</strong></div>
+                    <div>Cartes Perdues: <strong style="color:var(--rouge-dette);">${compte.carte_perdue_count || 0}</strong></div>
+                </div>
+
+                <div class="card-action-panel">
+                    <button style="background:var(--vert-finance); color:white;" onclick="ouvrirModalTransaction(${compte.id}, 'depot', ${currentBoxIndex >= 31})"><i class="fa-solid fa-plus"></i> Dépôt</button>
+                    <button style="background:var(--rouge-dette); color:white;" onclick="ouvrirModalTransaction(${compte.id}, 'emprunt', false)"><i class="fa-solid fa-hand-holding-dollar"></i> Emprunt / Remboursement</button>
+                    <button style="background:var(--bleu-accent); color:white;" onclick="ouvrirModalModificationCompte(${compte.id})"><i class="fa-solid fa-pen-to-square"></i> Corriger</button>
+                    ${!compte.carte_payee ? `<button style="background:var(--violet-init); color:white;" onclick="payerFraisCarte(${compte.id})"><i class="fa-solid fa-credit-card"></i> Payer Carte (1000 FC)</button>` : ''}
+                    <button style="background:#f59e0b; color:white;" onclick="declarerCartePerdue(${compte.id})"><i class="fa-solid fa-id-badge"></i> Perte Carte</button>
+                </div>
+            `;
+
+            document.getElementById('cardModalBody').innerHTML = bodyHtml;
+        }
+
+        async function payerFraisCarte(compteId) {
+            btnEnTraitement();
+            const { error } = await executeMutation('comptes', 'update', { carte_payee: true }, 'id', compteId);
+            if (!error) {
+                showNotification("Frais de carte de 500 FC encaissés avec succès !");
+                await actualiserInterface();
+            } else {
+                alert("Erreur lors du paiement : " + error.message);
+            }
+        }
+        function declarerCartePerdue(compteId) {
+        const compte = db.comptes.find(c => c.id === compteId);
+        if (!compte) return;
+
+        // Utilisation de la modale d'action générique
+        document.getElementById('modalTitle').innerText = "Déclarer une carte perdue";
+        document.getElementById('modalBody').innerHTML = `
+            <div style="background: rgba(245, 158, 11, 0.1); border:1px solid #f59e0b; padding:15px; border-radius:8px; margin-bottom:15px; font-size:14px; color:#fcd34d;">
+                <i class="fa-solid fa-triangle-exclamation"></i> En déclarant cette carte comme perdue :
+                <ul style="margin-top: 10px; margin-left: 20px;">
+                    <li>Le compteur de cartes perdues sera incrémenté.</li>
+                    <li>Le statut repassera à <strong>"Non Payée"</strong> (pour exiger les frais de remplacement).</li>
+                </ul>
+            </div>
+            <p style="text-align: center; font-weight: bold; color: var(--texte-blanc);">Confirmez-vous la perte pour le client ${compte.prenom} ${compte.nom} ?</p>
+        `;
+        
+        let btn = document.getElementById('modalConfirmBtn');
+        btn.style.display = 'block';
+        btn.innerText = "Confirmer la perte";
+        btn.style.backgroundColor = "#f59e0b"; // Couleur d'avertissement jaune/orange
+
+        btn.onclick = async () => {
+            btnEnTraitement();
+            let currentCount = compte.carte_perdue_count ? parseInt(compte.carte_perdue_count) : 0;
+            
+            // Mise à jour hors-ligne et Supabase via executeMutation
+            const { error } = await executeMutation('comptes', 'update', { 
+                carte_perdue_count: currentCount + 1,
+                carte_payee: false // Réinitialise le paiement
+            }, 'id', compteId);
+            
+            if(error) { 
+                btnPret(); 
+                alert("Erreur : " + error.message); 
+            } else { 
+                showNotification("Carte déclarée perdue avec succès !", "warning");
+                fermerModal(); 
+                await actualiserInterface(); 
+            }
+            
+            // Restauration de la couleur du bouton de la modale pour les autres actions
+            btn.style.backgroundColor = "var(--vert-finance)";
+        };
+        document.getElementById('actionModal').style.display = 'flex';
+    }
+
+        // ==========================================
+        // GESTION BOUTIQUE
+        // ==========================================
+        function renderBoutique() {
+            const tbody = document.getElementById('table-boutique-body'); tbody.innerHTML = "";
+            if (db.boutique_employes.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:var(--texte-gris);">Aucun employé enregistré.</td></tr>`; return; }
+            db.boutique_employes.forEach(emp => {
+                let salaire = safeNum(emp.salaire); let detteEnCours = safeNum(emp.dette_en_cours); let netAPayer = salaire - detteEnCours;
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${emp.prenom}</td><td><strong>${emp.nom}</strong></td>
+                    <td style="color:var(--bleu-accent);">${salaire.toLocaleString('de-DE')} FC</td>
+                    <td class="val-dette">${detteEnCours.toLocaleString('de-DE')} FC</td>
+                    <td style="color: ${netAPayer >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'}; font-weight: bold;">${netAPayer.toLocaleString('de-DE')} FC</td>
+                    <td>
+                        <div class="action-icons">
+                            <button class="delete-icon" onclick="ajouterDetteEmploye(${emp.id})" title="Ajouter dette ce mois"><i class="fa-solid fa-cart-plus"></i></button>
+                            <button class="guard-icon" onclick="cloturerMoisEmploye(${emp.id})" title="Clôturer le mois"><i class="fa-solid fa-calendar-check"></i></button>
+                            <button class="edit-icon" onclick="voirHistoriqueEmploye(${emp.id})" title="Historique Mensuel"><i class="fa-solid fa-clock-rotate-left"></i></button>
+                            <button class="admin-action" style="color: var(--rouge-dette); display: ${currentRole === 'admin' ? 'inline-block' : 'none'};" onclick="supprimerEmployeBoutique(${emp.id})" title="Supprimer Employé"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function supprimerEmployeBoutique(id) {
+            if(!confirm("Administrateur: Voulez-vous supprimer cet employé de la boutique ? Cette action est définitive.")) return;
+            await executeMutation('boutique_employes', 'delete', null, 'id', id);
+            await actualiserInterface();
+        }
+
+        function ouvrirModalNouvelEmployeBoutique() {
+            document.getElementById('modalTitle').innerText = "Nouvel Employé Pharmacie";
+            document.getElementById('modalBody').innerHTML = `<div class="form-group"><label>Prénom de l'employé</label><input type="text" id="boutiquePrenom" required></div><div class="form-group"><label>Nom de l'employé</label><input type="text" id="boutiqueNom" required></div><div class="form-group"><label>Salaire Mensuel Fixe (FC)</label><input type="text" id="boutiqueSalaire" class="input-montant" oninput="formatMontantInput(this)" required></div>`;
+            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
+            document.getElementById('modalConfirmBtn').onclick = async () => {
+                let prenom = document.getElementById('boutiquePrenom').value.trim(); let nom = document.getElementById('boutiqueNom').value.trim(); let salaire = safeNum(document.getElementById('boutiqueSalaire').value);
+                if(!prenom || !nom || salaire <= 0) return alert("Remplissez correctement tous les champs.");
+                
+                btnEnTraitement();
+                const { error } = await executeMutation('boutique_employes', 'insert', { prenom, nom, salaire, dette_en_cours: 0 });
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { fermerModal(); await actualiserInterface(); }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function ajouterDetteEmploye(employeId) {
+            const emp = db.boutique_employes.find(e => e.id === employeId); if(!emp) return;
+            document.getElementById('modalTitle').innerText = `Ajouter dette - ${emp.prenom} ${emp.nom}`;
+            document.getElementById('modalBody').innerHTML = `<div style="margin-bottom: 15px; font-size: 14px; color: var(--texte-gris);">Dette actuelle : <strong style="color:var(--rouge-dette);">${safeNum(emp.dette_en_cours).toLocaleString('de-DE')} FC</strong></div><div class="form-group"><label>Montant nouvelle dette (FC)</label><input type="text" id="nouvelleDetteEmp" class="input-montant" oninput="formatMontantInput(this)" required></div>`;
+            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
+            document.getElementById('modalConfirmBtn').onclick = async () => {
+                let mnt = safeNum(document.getElementById('nouvelleDetteEmp').value); if(mnt <= 0) return alert("Montant invalide.");
+                
+                btnEnTraitement();
+                const { error } = await executeMutation('boutique_employes', 'update', { dette_en_cours: safeNum(emp.dette_en_cours) + mnt }, 'id', employeId);
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { fermerModal(); await actualiserInterface(); }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function cloturerMoisEmploye(employeId) {
+            const emp = db.boutique_employes.find(e => e.id === employeId); if(!emp) return;
+            let salaire = safeNum(emp.salaire); let dette = safeNum(emp.dette_en_cours); let net = salaire - dette;
+            let moisDefaut = new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' }); moisDefaut = moisDefaut.charAt(0).toUpperCase() + moisDefaut.slice(1);
+
+            document.getElementById('modalTitle').innerText = `Clôturer le mois - ${emp.prenom} ${emp.nom}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; border: 1px solid var(--border-couleur);">
+                    <p>Salaire du mois : <strong style="color:var(--bleu-accent);">${salaire.toLocaleString('de-DE')} FC</strong></p>
+                    <p>Dettes accumulées : <strong style="color:var(--rouge-dette);">${dette.toLocaleString('de-DE')} FC</strong></p>
+                    <hr style="border-color:var(--border-couleur); margin:10px 0;">
+                    <p style="font-size:16px;">Net à Payer : <strong style="color:${net>=0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'};">${net.toLocaleString('de-DE')} FC</strong></p>
+                </div>
+                <div class="form-group"><label>Mois concerné</label><input type="text" id="clotureMois" value="${moisDefaut}" required></div>
+                <div class="form-group"><label>Statut de paiement</label><select id="clotureStatut"><option value="Payé">✅ Payé</option><option value="Non Payé">❌ Non Payé</option></select></div>
+            `;
+            
+            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
+            document.getElementById('modalConfirmBtn').onclick = async () => {
+                let moisTexte = document.getElementById('clotureMois').value.trim(); if(!moisTexte) return alert("Indiquez le mois.");
+                
+                btnEnTraitement();
+                const { error: errHist } = await executeMutation('boutique_historique', 'insert', { employe_id: employeId, mois: moisTexte, salaire: salaire, dette: dette, statut: document.getElementById('clotureStatut').value });
+                if (errHist) { btnPret(); return alert("Erreur : " + errHist.message); }
+                const { error: errUpdate } = await executeMutation('boutique_employes', 'update', { dette_en_cours: 0 }, 'id', employeId);
+                
+                if (errUpdate) { btnPret(); alert("Erreur : " + errUpdate.message); } 
+                else { fermerModal(); await actualiserInterface(); }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function voirHistoriqueEmploye(employeId) {
+            const emp = db.boutique_employes.find(e => e.id === employeId); if(!emp) return;
+            document.querySelector('#actionModal .modal-content').classList.add('modal-large');
+            document.getElementById('modalTitle').innerText = `Historique : ${emp.prenom} ${emp.nom}`;
+            let htmlTable = `<div class="table-container" style="max-height: 400px; overflow-y: auto;"><table style="min-width:100%;"><thead><tr><th>Mois</th><th>Salaire</th><th>Dettes</th><th>Net</th><th>Statut</th><th>Action</th></tr></thead><tbody>`;
+            let historiques = db.boutique_historique.filter(h => h.employe_id === employeId).sort((a, b) => b.id - a.id);
+            if (historiques.length === 0) { htmlTable += `<tr><td colspan="6" style="text-align:center;">Aucun historique.</td></tr>`; } 
+            else {
+                historiques.forEach(h => {
+                    let sal = safeNum(h.salaire); let det = safeNum(h.dette); let net = sal - det; let estPaye = h.statut === 'Payé';
+                    let btnAction = estPaye ? `<button style="background:transparent; border:1px solid var(--texte-gris); color:var(--texte-gris); padding:5px 10px; border-radius:5px; font-size:11px; cursor:pointer;" onclick="basculerStatutMois(${h.id}, '${h.statut}', ${employeId})">Marquer Non Payé</button>` : `<button style="background:var(--vert-finance); border:none; color:white; padding:5px 10px; border-radius:5px; font-size:11px; font-weight:bold; cursor:pointer;" onclick="basculerStatutMois(${h.id}, '${h.statut}', ${employeId})">Marquer Payé</button>`;
+                    htmlTable += `<tr><td><strong>${h.mois}</strong></td><td>${sal.toLocaleString('de-DE')} FC</td><td class="val-dette">-${det.toLocaleString('de-DE')} FC</td><td style="font-weight:bold;">${net.toLocaleString('de-DE')} FC</td><td>${estPaye ? '<span class="badge badge-success">Payé</span>' : '<span class="badge badge-danger">Non Payé</span>'}</td><td>${btnAction}</td></tr>`;
+                });
+            }
+            htmlTable += `</tbody></table></div>`;
+            document.getElementById('modalBody').innerHTML = htmlTable; document.getElementById('modalConfirmBtn').style.display = 'none';
+            document.querySelector('.btn-cancel').innerText = "Fermer"; document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        async function basculerStatutMois(histId, statutActuel, employeId) {
+            const { error } = await executeMutation('boutique_historique', 'update', { statut: statutActuel === 'Payé' ? 'Non Payé' : 'Payé' }, 'id', histId);
+            if(!error) { await fetchAllData(); voirHistoriqueEmploye(employeId); } else { alert("Erreur : " + error.message); }
+        }
+
+        // ==========================================
+        // GESTION HORS CARTE
+        // ==========================================
+        function calculerStatsHC(personneId) {
+            const txs = db.transactions_hc.filter(t => t.dette_id === personneId);
+            const totalEmprunts = txs.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0);
+            const totalRemboursements = txs.filter(t => t.type === 'remboursement').reduce((a, b) => a + safeNum(b.montant), 0);
+            const totalGarde = txs.filter(t => t.type === 'garde').reduce((a, b) => a + safeNum(b.montant), 0);
+            const totalRetrait = txs.filter(t => t.type === 'retrait').reduce((a, b) => a + safeNum(b.montant), 0);
+            const soldeDette = Math.max(0, totalEmprunts - totalRemboursements);
+            const soldeGarde = Math.max(0, totalGarde - totalRetrait);
+            return { totalEmprunts, totalRemboursements, totalGarde, totalRetrait, soldeDette, soldeGarde, soldeGlobal: soldeGarde - soldeDette };
+        }
+
+        function renderDettesHC() {
+            const tbody = document.getElementById('table-dettes-hc-body'); tbody.innerHTML = "";
+            const searchTxt = document.getElementById('searchDettesHC').value.toLowerCase();
+            let personnes = db.dettes_hc.filter(p => p.nom.toLowerCase().includes(searchTxt) || p.prenom.toLowerCase().includes(searchTxt));
+
+            personnes.forEach(p => {
+                let stats = calculerStatsHC(p.id); let nomColor = 'var(--texte-blanc)'; let statutBadge = '';
+                if (stats.soldeGlobal > 0) { nomColor = 'var(--vert-finance)'; statutBadge = '<span class="badge badge-success">Garde Active</span>'; } 
+                else if (stats.soldeGlobal < 0) { nomColor = 'var(--rouge-dette)'; statutBadge = '<span class="badge badge-danger">Dette à payer</span>'; } 
+                else { statutBadge = '<span class="badge badge-neutral">Soldé</span>'; }
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td style="color: ${nomColor}; font-weight: bold; cursor: pointer; text-decoration: underline;" onclick="ouvrirHistoriqueHC(${p.id})">${p.prenom} ${p.nom}</td>
+                    <td class="val-dette">${stats.soldeDette.toLocaleString('de-DE')} FC</td><td class="val-depot">${stats.soldeGarde.toLocaleString('de-DE')} FC</td>
+                    <td style="color: ${nomColor}; font-weight: bold;">${Math.abs(stats.soldeGlobal).toLocaleString('de-DE')} FC</td><td>${statutBadge}</td>
+                    <td>
+                        <div class="action-icons">
+                            <button class="delete-icon" onclick="ouvrirModalTransactionHC(${p.id}, 'emprunt')" title="Accorder Prêt (-)"><i class="fa-solid fa-arrow-up-right-from-square"></i></button>
+                            <button class="add-icon" onclick="ouvrirModalTransactionHC(${p.id}, 'remboursement')" title="Recevoir Remboursement (+)"><i class="fa-solid fa-hand-holding-hand"></i></button>
+                            <button style="color: var(--vert-finance);" onclick="ouvrirModalTransactionHC(${p.id}, 'garde')" title="Garder Argent (+)"><i class="fa-solid fa-piggy-bank"></i></button>
+                            <button class="guard-icon" onclick="ouvrirModalTransactionHC(${p.id}, 'retrait')" title="Retirer Argent Gardé (-)"><i class="fa-solid fa-money-bill-transfer"></i></button>
+                            <button class="admin-action" style="color: var(--rouge-dette); display: ${currentRole === 'admin' ? 'inline-block' : 'none'};" onclick="supprimerCompteHC(${p.id})" title="Supprimer Profil"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function supprimerCompteHC(id) {
+            if(!confirm("Administrateur: Voulez-vous vraiment supprimer ce profil Hors Carte et toutes ses transactions associées ?")) return;
+            await executeMutation('dettes_hors_carte', 'delete', null, 'id', id);
+            await actualiserInterface();
+        }
+
+        function ouvrirModalNouveauProfilHC(typeAction = 'emprunt') {
+            document.getElementById('modalTitle').innerText = typeAction === 'emprunt' ? "Nouveau Profil (Prêt)" : "Nouveau Profil (Garde Argent)";
+            document.getElementById('modalBody').innerHTML = `<div class="form-group"><label>Prénom</label><input type="text" id="hcPrenom" required></div><div class="form-group"><label>Nom</label><input type="text" id="hcNom" required></div><div class="form-group"><label>Montant (FC)</label><input type="text" id="hcMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>${typeAction === 'emprunt' ? `<div class="form-group"><label>Commentaire (Optionnel)</label><textarea id="hcCommentaire"></textarea></div>` : ``}`;
+            document.getElementById('modalConfirmBtn').style.display = 'block';
+            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
+            document.getElementById('modalConfirmBtn').onclick = async () => {
+                let prenom = document.getElementById('hcPrenom').value.trim(); let nom = document.getElementById('hcNom').value.trim(); let montant = safeNum(document.getElementById('hcMontant').value);
+                if(!prenom || !nom || montant <= 0) return alert("Remplissez correctement tous les champs.");
+                let isoDate = new Date().toISOString().split('T')[0];
+                
+                btnEnTraitement();
+                const { data, error } = await executeMutation('dettes_hors_carte', 'insert', { prenom, nom, date_creation: isoDate });
+                
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else if (data && data.length > 0) {
+                    let txPayload = { dette_id: data[0].id, type: typeAction, montant: montant, date: isoDate, cree_par: document.getElementById('session-user-name').innerText };
+                    if (document.getElementById('hcCommentaire')) txPayload.commentaire = document.getElementById('hcCommentaire').value.trim();
+                    const txRes = await executeMutation('transactions_hors_carte', 'insert', txPayload);
+                    
+                    if (txRes.error) { btnPret(); alert("Erreur transaction : " + txRes.error.message); } 
+                    else { fermerModal(); await actualiserInterface(); }
+                }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function ouvrirModalTransactionHC(personneId, type) {
+            const personne = db.dettes_hc.find(p => p.id === personneId); if (!personne) return alert("Personne introuvable.");
+            let stats = calculerStatsHC(personneId);
+            let typeText = "";
+            if(type === 'emprunt') typeText = 'Accorder Prêt';
+            else if(type === 'remboursement') typeText = 'Recevoir Remboursement';
+            else if(type === 'garde') typeText = 'Garder Argent';
+            else if(type === 'retrait') typeText = "Retrait Argent Gardé";
+
+            document.getElementById('modalTitle').innerText = `${typeText} - ${personne.prenom} ${personne.nom}`;
+            document.getElementById('modalBody').innerHTML = `
+                <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid var(--border-couleur);">
+                    <div>Dette actuelle : <strong class="val-dette">${stats.soldeDette.toLocaleString('de-DE')} FC</strong></div>
+                    <div>Argent gardé : <strong class="val-depot">${stats.soldeGarde.toLocaleString('de-DE')} FC</strong></div>
+                </div>
+                <div class="form-group"><label>Montant (FC)</label><input type="text" id="hcTxMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>
+                <div class="form-group"><label>Commentaire (Optionnel)</label><textarea id="hcTxCommentaire" placeholder="Note ou motif..."></textarea></div>
+            `;
+            
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block';
+            btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
+                let montant = safeNum(document.getElementById('hcTxMontant').value);
+                if (montant <= 0) return alert("Montant invalide.");
+
+                if (type === 'remboursement') {
+                    if (stats.soldeDette <= 0) return alert("Cette personne n'a aucune dette en cours à rembourser.");
+                    if (montant > stats.soldeDette) return alert(`Le montant remboursé (${montant.toLocaleString('de-DE')} FC) dépasse la dette actuelle (${stats.soldeDette.toLocaleString('de-DE')} FC).`);
+                }
+                if (type === 'retrait') {
+                    if (stats.soldeGarde <= 0) return alert("Aucun solde gardé disponible à retirer.");
+                    if (montant > stats.soldeGarde) return alert(`Le montant demandé (${montant.toLocaleString('de-DE')} FC) dépasse le solde gardé (${stats.soldeGarde.toLocaleString('de-DE')} FC).`);
+                }
+
+                btnEnTraitement();
+                let isoDate = new Date().toISOString().split('T')[0];
+                let commentaire = document.getElementById('hcTxCommentaire').value.trim();
+                const { error } = await executeMutation('transactions_hors_carte', 'insert', {
+                    dette_id: personneId,
+                    type: type,
+                    montant: montant,
+                    date: isoDate,
+                    commentaire: commentaire,
+                    cree_par: document.getElementById('session-user-name').innerText
+                });
+
+                if (error) { btnPret(); alert("Erreur : " + error.message); }
+                else { fermerModal(); await actualiserInterface(); }
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        function ouvrirHistoriqueHC(personneId) {
+            const personne = db.dettes_hc.find(p => p.id === personneId); if (!personne) return;
+            document.querySelector('#actionModal .modal-content').classList.add('modal-large');
+            document.getElementById('modalTitle').innerText = `Historique Hors Carte - ${personne.prenom} ${personne.nom}`;
+            let txs = db.transactions_hc.filter(t => t.dette_id === personneId).sort((a, b) => b.id - a.id);
+            let htmlTable = `
+                <div class="table-container" style="max-height: 400px; overflow-y: auto;">
+                    <table style="min-width:100%;">
+                        <thead>
+                            <tr><th>Date</th><th>Type</th><th>Montant</th><th>Commentaire</th><th>Auteur</th></tr>
+                        </thead>
+                        <tbody>
+            `;
+            if (txs.length === 0) {
+                htmlTable += `<tr><td colspan="5" style="text-align:center;">Aucune transaction enregistrée.</td></tr>`;
+            } else {
+                txs.forEach(t => {
+                    let typeBadge = '';
+                    if (t.type === 'emprunt') typeBadge = '<span class="badge badge-danger">Prêt (Dette)</span>';
+                    else if (t.type === 'remboursement') typeBadge = '<span class="badge badge-success">Remboursement</span>';
+                    else if (t.type === 'garde') typeBadge = '<span class="badge badge-success">Garde</span>';
+                    else if (t.type === 'retrait') typeBadge = '<span class="badge badge-warning">Retrait</span>';
+
+                    htmlTable += `
+                        <tr>
+                            <td>${t.date || '-'}</td>
+                            <td>${typeBadge}</td>
+                            <td style="font-weight:bold;">${safeNum(t.montant).toLocaleString('de-DE')} FC</td>
+                            <td>${t.commentaire || '-'}</td>
+                            <td>${t.cree_par || '-'}</td>
+                        </tr>
+                    `;
+                });
+            }
+            htmlTable += `</tbody></table></div>`;
+            document.getElementById('modalBody').innerHTML = htmlTable;
+            document.getElementById('modalConfirmBtn').style.display = 'none';
+            document.querySelector('.btn-cancel').innerText = "Fermer";
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        // ==========================================
+        // HISTORIQUE GLOBAL & CORBEILLE
+        // ==========================================
+        function rechercherHistorique() { currentPageHistorique = 1; renderHistorique(); }
+        function changerPageHistorique(dir) { currentPageHistorique += dir; renderHistorique(); }
+
+        function renderHistorique() {
+            const tbody = document.getElementById('table-historique-body');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            const searchTxt = (document.getElementById('searchHistorique')?.value || "").toLowerCase();
+
+            let list = db.transactions.filter(t => verifierFiltreDate(t.date)).filter(t => {
+                if (!searchTxt) return true;
+                let compte = db.comptes.find(c => c.id === t.compte_id);
+                let nomComplet = compte ? `${compte.prenom} ${compte.nom}`.toLowerCase() : "";
+                let codeClient = compte ? genererIdentifiantClient(compte.id).toLowerCase() : "";
+                return t.type.toLowerCase().includes(searchTxt) || nomComplet.includes(searchTxt) || codeClient.includes(searchTxt) || (t.cree_par && t.cree_par.toLowerCase().includes(searchTxt));
+            }).sort((a, b) => b.id - a.id);
+
+            const totalPages = Math.ceil(list.length / itemsPerPageHistorique) || 1;
+            if (currentPageHistorique > totalPages) currentPageHistorique = totalPages;
+            if (currentPageHistorique < 1) currentPageHistorique = 1;
+
+            const pageItems = list.slice((currentPageHistorique - 1) * itemsPerPageHistorique, currentPageHistorique * itemsPerPageHistorique);
+
+            if (pageItems.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--texte-gris);">Aucune opération trouvée.</td></tr>`;
+                return;
+            }
+
+            pageItems.forEach(t => {
+                let compte = db.comptes.find(c => c.id === t.compte_id);
+                let clientNom = compte ? `${compte.prenom} ${compte.nom}` : "Client Inconnu";
+                let clientCode = compte ? genererIdentifiantClient(compte.id) : "-";
+
+                let typeLabel = "";
+                if (t.type === 'depot') typeLabel = '<span class="badge badge-success">Dépôt</span>';
+                else if (t.type === 'emprunt') typeLabel = '<span class="badge badge-danger">Emprunt</span>';
+                else if (t.type === 'remboursement') typeLabel = '<span class="badge badge-success">Remboursement</span>';
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${t.date || '-'}</td>
+                    <td style="font-weight:bold;">${clientCode}</td>
+                    <td><strong>${clientNom}</strong></td>
+                    <td>${typeLabel}</td>
+                    <td style="font-weight:bold;">${safeNum(t.montant).toLocaleString('de-DE')} FC</td>
+                    <td>${t.cree_par || 'Système'}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            let paginationRow = document.createElement('tr');
+            paginationRow.innerHTML = `
+                <td colspan="6" style="text-align:center; padding: 15px; border-bottom: none;">
+                    <button class="btn-cancel" style="width: auto; padding: 6px 14px; margin-right: 10px;" ${currentPageHistorique <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="changerPageHistorique(-1)"><i class="fa-solid fa-chevron-left"></i> Précédent</button>
+                    <span style="font-weight: bold; color: var(--texte-blanc);">Page ${currentPageHistorique} sur ${totalPages}</span>
+                    <button class="btn-cancel" style="width: auto; padding: 6px 14px; margin-left: 10px;" ${currentPageHistorique >= totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="changerPageHistorique(1)">Suivant <i class="fa-solid fa-chevron-right"></i></button>
+                </td>
+            `;
+            tbody.appendChild(paginationRow);
+        }
+
+        function renderCorbeille() {
+            const tbody = document.getElementById('table-corbeille-body');
+            if (!tbody) return;
+            tbody.innerHTML = "";
+
+            let corbeilleComptes = db.comptes.filter(c => c.statut === 'corbeille');
+            if (corbeilleComptes.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--texte-gris);">La corbeille est vide.</td></tr>`;
+                return;
+            }
+
+            corbeilleComptes.forEach(c => {
+                let stats = calculerStatsCompte(c.id);
+                let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
+
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${c.prenom} ${c.nom}</strong> (${genererIdentifiantClient(c.id)})</td>
+                    <td>${c.adresse}</td>
+                    <td>${safeNum(c.montant_initial).toLocaleString('de-DE')} FC</td>
+                    <td class="val-depot">+${stats.totalDepots.toLocaleString('de-DE')} FC</td>
+                    <td class="val-dette">-${stats.totalPrets.toLocaleString('de-DE')} FC</td>
+                    <td>${c.carte_payee ? '<span class="badge badge-success">Payée</span>' : '<span class="badge badge-danger">-1000 FC</span>'}</td>
+                    <td style="font-weight:bold; color:${soldeFinal >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'};">${soldeFinal.toLocaleString('de-DE')} FC</td>
+                    <td class="admin-action" style="display: ${currentRole === 'admin' ? 'table-cell' : 'none'};">
+                        <div class="action-icons">
+                            <button class="add-icon" onclick="restaurerCompteCorbeille(${c.id})" title="Restaurer Compte"><i class="fa-solid fa-rotate-left"></i></button>
+                            <button class="delete-icon" onclick="supprimerDefinitivementCorbeille(${c.id})" title="Supprimer définitivement"><i class="fa-solid fa-trash-can"></i></button>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        async function restaurerCompteCorbeille(compteId) {
+            if (!confirm("Voulez-vous restaurer ce compte client dans la liste active ?")) return;
+            const { error } = await executeMutation('comptes', 'update', { statut: 'actif' }, 'id', compteId);
+            if (!error) {
+                showNotification("Compte restauré avec succès !", "success");
+                await actualiserInterface();
+            } else {
+                alert("Erreur : " + error.message);
+            }
+        }
+
+        async function supprimerDefinitivementCorbeille(compteId) {
+            if (!confirm("⚠️ Action irréversible : Voulez-vous supprimer définitivement ce compte et son historique ?")) return;
+            await executeMutation('transactions', 'delete', null, 'compte_id', compteId);
+            const { error } = await executeMutation('comptes', 'delete', null, 'id', compteId);
+            if (!error) {
+                showNotification("Compte supprimé définitivement.", "warning");
+                await actualiserInterface();
+            } else {
+                alert("Erreur : " + error.message);
+            }
+        }
+
+        function purgerCorbeilleMensuelle() {
+            let corbeilleComptes = db.comptes.filter(c => c.statut === 'corbeille');
+            if (corbeilleComptes.length === 0) return alert("La corbeille est vide, rien à purger.");
+
+            if (!confirm("Voulez-vous exporter en Excel et purger les comptes clôturés ?")) return;
+
+            let exportData = corbeilleComptes.map(c => {
+                let stats = calculerStatsCompte(c.id);
+                let soldeRendu = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
+                return {
+                    "ID Client": genererIdentifiantClient(c.id),
+                    "Prénom": c.prenom,
+                    "Nom": c.nom,
+                    "Adresse": c.adresse,
+                    "Montant Initial": c.montant_initial,
+                    "Total Dépôts": stats.totalDepots,
+                    "Total Dettes": stats.totalPrets,
+                    "Frais Carte": c.carte_payee ? "Payée" : "Non payée (-1000 FC)",
+                    "Solde Final Rendu": soldeRendu,
+                    "Date Clôture": c.date || ""
+                };
+            });
+
+            let ws = XLSX.utils.json_to_sheet(exportData);
+            let wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Comptes Clôturés");
+            let fileName = `Purge_Corbeille_Bwakisa_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+
+            showNotification("Export Excel généré avec succès.", "success");
+        }
+
+        // ==========================================
+        // GESTION AGENTS / UTILISATEURS ADMIN
+        // ==========================================
+        async function ouvrirModalGestionAgents() {
+            if (currentRole !== 'admin') return alert("Accès réservé aux administrateurs.");
+
+            document.querySelector('#actionModal .modal-content').classList.add('modal-large');
+            document.getElementById('modalTitle').innerText = "Gestion des Utilisateurs / Agents";
+
+            let { data: users, error } = await supabaseClient.from('authatification').select('*');
+            if (error) { alert("Erreur chargement agents: " + error.message); return; }
+
+            let rowsHtml = "";
+            (users || []).forEach(u => {
+                rowsHtml += `
+                    <tr>
+                        <td><strong>${u.nom}</strong></td>
+                        <td><span class="badge ${u.fonction === 'admin' ? 'badge-danger' : 'badge-success'}">${u.fonction}</span></td>
+                        <td>••••••••</td>
+                        <td>
+                            ${u.fonction !== 'admin' ? `<button class="delete-icon" onclick="supprimerAgent(${u.id})"><i class="fa-solid fa-trash-can"></i></button>` : '<em>SuperAdmin</em>'}
+                        </td>
+                    </tr>
+                `;
+            });
+
+            let bodyHtml = `
+                <div style="margin-bottom:20px; padding:15px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid var(--border-couleur);">
+                    <h4 style="color:var(--vert-finance); margin-bottom:10px;">Ajouter un nouvel agent</h4>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <input type="text" id="newAgentNom" placeholder="Nom de l'agent" class="filter-input" style="flex:1; min-width:140px;">
+                        <input type="password" id="newAgentPass" placeholder="Mot de passe" class="filter-input" style="flex:1; min-width:140px;">
+                        <select id="newAgentRole" class="filter-input" style="width:120px;">
+                            <option value="agent">Agent</option>
+                            <option value="admin">Admin</option>
+                        </select>
+                        <button class="add-btn" onclick="ajouterAgent()"><i class="fa-solid fa-user-plus"></i> Créer</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table style="min-width:100%;">
+                        <thead><tr><th>Nom Utilisateur</th><th>Fonction</th><th>Mot de passe</th><th>Action</th></tr></thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                </div>
+            `;
+
+            document.getElementById('modalBody').innerHTML = bodyHtml;
+            document.getElementById('modalConfirmBtn').style.display = 'none';
+            document.querySelector('.btn-cancel').innerText = "Fermer";
+            document.getElementById('actionModal').style.display = 'flex';
+        }
+
+        async function ajouterAgent() {
+            let nom = document.getElementById('newAgentNom').value.trim();
+            let pass = document.getElementById('newAgentPass').value;
+            let role = document.getElementById('newAgentRole').value;
+
+            if (!nom || !pass) return alert("Saisissez un nom et un mot de passe.");
+
+            const { error } = await supabaseClient.from('authatification').insert([{ nom, mot_de_passe: pass, fonction: role }]);
+            if (error) alert("Erreur création : " + error.message);
+            else {
+                showNotification("Nouvel utilisateur créé !");
+                ouvrirModalGestionAgents();
+            }
+        }
+
+        async function supprimerAgent(userId) {
+            if (!confirm("Voulez-vous supprimer cet agent ?")) return;
+            const { error } = await supabaseClient.from('authatification').delete().eq('id', userId);
+            if (error) alert("Erreur suppression : " + error.message);
+            else {
+                showNotification("Utilisateur supprimé.");
+                ouvrirModalGestionAgents();
+            }
+        }
+    </script>
+</body>
+</html>
