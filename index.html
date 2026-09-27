@@ -577,35 +577,28 @@
         </div>
     </div>
 
-    <script>
+   <script>
         function formatMontantInput(input) {
             let val = input.value.replace(/\D/g, '');
             if (val !== "") { input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, "."); } 
             else { input.value = ""; }
         }
-
         function btnEnTraitement(idBtn = 'modalConfirmBtn') {
             let btn = document.getElementById(idBtn);
-            if(btn) {
-                btn.dataset.originalText = btn.innerText;
-                btn.innerText = "Traitement...";
-                btn.disabled = true;
-            }
+            if(btn) { btn.dataset.originalText = btn.innerText; btn.innerText = "Traitement..."; btn.disabled = true; }
         }
         function btnPret(idBtn = 'modalConfirmBtn') {
             let btn = document.getElementById(idBtn);
-            if(btn) {
-                btn.innerText = btn.dataset.originalText || "Valider l'opération";
-                btn.disabled = false;
-            }
+            if(btn) { btn.innerText = btn.dataset.originalText || "Valider l'opération"; btn.disabled = false; }
         }
-
         function fermerModal() {
             document.getElementById('actionModal').style.display = 'none';
             document.querySelector('#actionModal .modal-content').classList.remove('modal-large');
+            let btnConfirm = document.getElementById('modalConfirmBtn');
+            if (btnConfirm) { btnConfirm.style.backgroundColor = "var(--vert-finance)"; btnConfirm.style.display = 'block'; }
+            document.querySelector('#actionModal .btn-cancel').innerText = "Annuler";
             btnPret('modalConfirmBtn');
         }
-
         let inactivityTimeout;
         function autoRetractSidebar() {
             const sidebar = document.getElementById('appSidebar');
@@ -625,7 +618,6 @@
                 request.onerror = (e) => reject(e.target.error);
             });
         }
-
         async function addActionToQueue(actionParams) {
             if (!localDB) await initIndexedDB();
             return new Promise((resolve, reject) => { let transaction = localDB.transaction([STORE_NAME], 'readwrite'); let store = transaction.objectStore(STORE_NAME); let request = store.add(actionParams); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
@@ -638,14 +630,12 @@
             if (!localDB) await initIndexedDB();
             return new Promise((resolve, reject) => { let transaction = localDB.transaction([STORE_NAME], 'readwrite'); let store = transaction.objectStore(STORE_NAME); let request = store.delete(id); request.onsuccess = () => resolve(); request.onerror = () => reject(request.error); });
         }
-
         let notifTimeoutLocal;
         function showNotification(msg, type = 'success') {
             const band = document.getElementById('notification-band'); const text = document.getElementById('notification-text'); text.innerText = msg;
             band.className = 'show'; if(type === 'success') band.classList.add('bg-success'); if(type === 'error') band.classList.add('bg-error'); if(type === 'warning') band.classList.add('bg-warning');
             clearTimeout(notifTimeoutLocal); notifTimeoutLocal = setTimeout(() => { band.classList.remove('show'); }, 3000); 
         }
-
         let idMapping = {}; 
         async function syncOfflineData() {
             const queue = await getQueue(); if (queue.length === 0) return;
@@ -666,7 +656,6 @@
             }
             showNotification("Toutes les données ont été synchronisées.", "success"); await actualiserInterface();
         }
-
         async function executeMutation(table, operation, payload, matchField = null, matchValue = null) {
             if (!navigator.onLine) {
                 let tempId = Date.now() + Math.floor(Math.random() * 1000);
@@ -685,14 +674,12 @@
                 else if (operation === 'delete') return await request.delete().eq(matchField, matchValue);
             } catch (err) { return { data: null, error: err }; }
         }
-
         document.addEventListener('input', function(e) { if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'text' && !e.target.classList.contains('input-montant')) { let val = e.target.value; if (val.length > 0) { e.target.value = val.charAt(0).toUpperCase() + val.slice(1); } } });
-
         function safeNum(val) { if (val === null || val === undefined) return 0; let cleanStr = val.toString().replace(/\./g, ""); let parsed = parseFloat(cleanStr.replace(/[^0-9-]+/g, "")); return isNaN(parsed) ? 0 : parsed; }
 
-        const SUPABASE_URL = "https://mfxdrozdnwhlvirevnuk.supabase.co"; 
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meGRyb3pkbndobHZpcmV2bnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTkwNzIsImV4cCI6MjEwNTMzNTA3Mn0.txYO0pC2VXpxwWQxUDMykHJspm4G4qD_TfoyA1D23Hs";
-        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+      onst SUPABASE_URL = "https://mfxdrozdnwhlvirevnuk.supabase.co"; 
+     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meGRyb3pkbndobHZpcmV2bnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTkwNzIsImV4cCI6MjEwNTMzNTA3Mn0.txYO0pC2VXpxwWQxUDMykHJspm4G4qD_TfoyA1D23Hs";
+          const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let db = { comptes: [], transactions: [], dettes_hc: [], transactions_hc: [], boutique_employes: [], boutique_historique: [] };
         let currentRole = ""; let evolutionChartInstance = null; let selectedCompteId = null; let currentPage = 1; const itemsPerPage = 10;
@@ -718,7 +705,6 @@
             else { if(miniLogo) miniLogo.style.display = "block"; if(brandText) brandText.style.display = "none"; if(brandSub) brandSub.style.display = "none"; }
         }
         window.addEventListener('resize', updateMiniLogoVisibility);
-
         function genererIdentifiantClient(compteId) { let index = db.comptes.concat().sort((a,b) => a.id - b.id).findIndex(c => c.id === compteId); if(index === -1) return "BC" + String(compteId).padStart(4, '0'); return "BC" + String(index + 1).padStart(4, '0'); }
 
         async function handleLogin(event) {
@@ -736,7 +722,6 @@
             } catch (err) { if (!navigator.onLine) alert("Hors ligne."); else alert("Erreur réseau."); } 
             finally { submitBtn.innerText = "Accéder aux Coffres"; submitBtn.disabled = false; }
         }
-
         function switchPage(pageId) {
             document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active')); document.querySelectorAll('.menu-item').forEach(m => m.classList.remove('active'));
             document.getElementById('page-' + pageId).classList.add('active');
@@ -745,7 +730,6 @@
             toggleSidebarMenuMobile();
         }
         function handleLogout() { window.location.reload(); }
-
         function toggleDateInputs() {
             const type = document.getElementById('invFilterType').value;
             document.getElementById('ctrl-day').style.display = type === 'day' ? 'block' : 'none';
@@ -753,14 +737,12 @@
             document.getElementById('ctrl-year').style.display = type === 'year' ? 'block' : 'none';
             actualiserInterface();
         }
-
         function verifierFiltreDate(itemDate) {
             if (!itemDate) return false; const type = document.getElementById('invFilterType').value;
             if (type === 'all') return true; if (type === 'day') return itemDate === document.getElementById('filterDay').value;
             if (type === 'month') return itemDate.substring(0, 7) === document.getElementById('filterMonth').value;
             if (type === 'year') return itemDate.substring(0, 4) === document.getElementById('filterYear').value; return true;
         }
-
         function calculerStatsCompte(compteId) {
             const txs = db.transactions.filter(t => t.compte_id === compteId);
             const totalDepots = txs.filter(t => t.type === 'depot').reduce((a, b) => a + safeNum(b.montant), 0);
@@ -770,9 +752,17 @@
             return { totalDepots, totalPrets, totalPretsBrut, totalRemboursements };
         }
 
-        // ==========================================
-        // FETCH PAGINÉ ET FILTRE 2 MOIS
-        // ==========================================
+        /* ✅ Calcule le solde rendu cumulé pour un ensemble de comptes clôturés */
+        function calculerTotalSoldeRendu(comptesList) {
+            return comptesList
+                .filter(c => c.statut === 'corbeille')
+                .reduce((sum, c) => {
+                    let stats = calculerStatsCompte(c.id);
+                    let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
+                    return sum + soldeFinal;
+                }, 0);
+        }
+
         async function fetchPaginatedData(table, dateColumn = null, minDate = null) {
             let allData = []; let from = 0; const step = 30; let hasMore = true;
             while (hasMore) {
@@ -781,10 +771,8 @@
                 if (dateColumn && minDate) { query = query.gte(dateColumn, minDate); }
                 const { data, error } = await query;
                 if (error) { console.error("Erreur de pagination", table, error); break; }
-                if (data && data.length > 0) {
-                    allData = allData.concat(data);
-                    if (data.length < step) hasMore = false; else from += step;
-                } else { hasMore = false; }
+                if (data && data.length > 0) { allData = allData.concat(data); if (data.length < step) hasMore = false; else from += step; } 
+                else { hasMore = false; }
             }
             return allData;
         }
@@ -794,20 +782,16 @@
             try {
                 const date2Mois = new Date(); date2Mois.setMonth(date2Mois.getMonth() - 2);
                 const minDateIso = date2Mois.toISOString().split('T')[0];
-
                 const resComptes = await fetchPaginatedData('comptes', 'date', minDateIso); 
                 if (resComptes) db.comptes = resComptes;
-
                 const resTx = await fetchPaginatedData('transactions', 'date', minDateIso); 
                 if (resTx) db.transactions = resTx;
-
                 try { 
                     const resDettesHC = await fetchPaginatedData('dettes_hors_carte', 'date_creation', minDateIso); 
                     if (resDettesHC) db.dettes_hc = resDettesHC; 
                     const resTxHC = await fetchPaginatedData('transactions_hors_carte', 'date', minDateIso); 
                     if (resTxHC) db.transactions_hc = resTxHC; 
                 } catch (e) {}
-
                 try { 
                     const resBoutique = await fetchPaginatedData('boutique_employes'); 
                     if (resBoutique) db.boutique_employes = resBoutique; 
@@ -822,34 +806,53 @@
             if (selectedCompteId && document.getElementById('cardModal').style.display === 'flex') { chargerCartePhysique(selectedCompteId); }
         }
 
+        /* =============================================================
+           ✅ NOUVELLE FORMULE :
+             Total Sorties = Total Dépôts − Total Solde Rendu − Total Dettes
+           ============================================================= */
         function renderInventaire() {
+            // ===== DASHBOARD GLOBAL (cumulé) =====
             let totalDepots = db.transactions.filter(t => t.type === 'depot').reduce((a, b) => a + safeNum(b.montant), 0);
             let totalPrets = db.transactions.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0) - db.transactions.filter(t => t.type === 'remboursement').reduce((a, b) => a + safeNum(b.montant), 0);
             totalPrets = Math.max(0, totalPrets);
             let cartesPayeesActifs = db.comptes.filter(c => c.statut === 'actif' && c.carte_payee).length;
             let cartesPayeesClotures = db.comptes.filter(c => c.statut === 'corbeille').length; 
-            let revenusCartes = (cartesPayeesActifs + cartesPayeesClotures) * 500;
+            let revenusCartes = (cartesPayeesActifs + cartesPayeesClotures) * 1000;
             let totalInitiaux = db.comptes.filter(c => c.statut === 'actif').reduce((a, b) => a + safeNum(b.montant_initial), 0);
-            let caisse = totalDepots - totalPrets - totalInitiaux + revenusCartes;
-            let fTotalSorties = fTotalPrets + fTotalSoldeRendu;
-            document.getElementById('gl-stat-total-sortie').innerText = fTotalSorties.toLocaleString('de-DE') + " FC";
+            let totalSoldeRenduGlobal = calculerTotalSoldeRendu(db.comptes);
 
-            document.getElementById('stat-depots').innerText = totalDepots.toLocaleString('de-DE') + " FC"; document.getElementById('stat-prets').innerText = totalPrets.toLocaleString('de-DE') + " FC";
-            document.getElementById('stat-cartes').innerText = revenusCartes.toLocaleString('de-DE') + " FC"; document.getElementById('stat-initial').innerText = totalInitiaux.toLocaleString('de-DE') + " FC"; document.getElementById('stat-caisse').innerText = caisse.toLocaleString('de-DE') + " FC";
+            // ✅ NOUVELLE FORMULE
+            let totalSortiesGlobal = totalSoldeRenduGlobal + totalPrets;
+            // Caisse = Dépôts − Dettes − Initiaux − Solde Rendu (formule déjà corrigée précédemment)
+            let caisse = totalDepots - totalPrets - totalInitiaux - totalSoldeRenduGlobal;
 
-            let filteredTxs = db.transactions.filter(t => verifierFiltreDate(t.date)); let filteredComptes = db.comptes.filter(c => verifierFiltreDate(c.date));
+            document.getElementById('stat-depots').innerText = totalDepots.toLocaleString('de-DE') + " FC"; 
+            document.getElementById('stat-prets').innerText = totalPrets.toLocaleString('de-DE') + " FC";
+            document.getElementById('stat-total-sortie').innerText = totalSortiesGlobal.toLocaleString('de-DE') + " FC";
+            document.getElementById('stat-cartes').innerText = revenusCartes.toLocaleString('de-DE') + " FC"; 
+            document.getElementById('stat-initial').innerText = totalInitiaux.toLocaleString('de-DE') + " FC"; 
+            document.getElementById('stat-caisse').innerText = caisse.toLocaleString('de-DE') + " FC";
+
+            // ===== HISTORIQUE (filtré par période) =====
+            let filteredTxs = db.transactions.filter(t => verifierFiltreDate(t.date)); 
+            let filteredComptes = db.comptes.filter(c => verifierFiltreDate(c.date));
             let fTotalDepots = filteredTxs.filter(t => t.type === 'depot').reduce((a, b) => a + safeNum(b.montant), 0);
             let fTotalPrets = filteredTxs.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0) - filteredTxs.filter(t => t.type === 'remboursement').reduce((a, b) => a + safeNum(b.montant), 0);
             fTotalPrets = Math.max(0, fTotalPrets);
-            let fCartesPayeesActifs = filteredComptes.filter(c => c.statut === 'actif' && c.carte_payee).length;
-            let fCartesPayeesClotures = filteredComptes.filter(c => c.statut === 'corbeille').length; 
-            let fRevenusCartes = (fCartesPayeesActifs + fCartesPayeesClotures) * 500;
             let fTotalInitiaux = filteredComptes.filter(c => c.statut === 'actif').reduce((a, b) => a + safeNum(b.montant_initial), 0);
-            let fCaisse = fTotalDepots - fTotalPrets - fTotalInitiaux + fRevenusCartes;
-            let fTotalSoldeRendu = filteredComptes.filter(c => c.statut === 'corbeille').reduce((sum, c) => { let stats = calculerStatsCompte(c.id); let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 500); return sum + soldeFinal; }, 0);
+            let fTotalSoldeRendu = calculerTotalSoldeRendu(filteredComptes);
 
-            document.getElementById('gl-stat-depots').innerText = fTotalDepots.toLocaleString('de-DE') + " FC"; document.getElementById('gl-stat-prets').innerText = fTotalPrets.toLocaleString('de-DE') + " FC";
-            document.getElementById('gl-stat-initial').innerText = fTotalInitiaux.toLocaleString('de-DE') + " FC"; document.getElementById('gl-stat-caisse').innerText = fCaisse.toLocaleString('de-DE') + " FC"; document.getElementById('gl-stat-solde-rendu').innerText = fTotalSoldeRendu.toLocaleString('de-DE') + " FC";
+            // ✅ NOUVELLE FORMULE (filtrée)
+            let fTotalSorties =  fTotalSoldeRendu + fTotalPrets;
+            // Caisse = Dépôts − Dettes − Initiaux − Solde Rendu
+            let fCaisse = fTotalDepots - fTotalPrets - fTotalInitiaux - fTotalSoldeRendu;
+
+            document.getElementById('gl-stat-total-sortie').innerText = fTotalSorties.toLocaleString('de-DE') + " FC";
+            document.getElementById('gl-stat-depots').innerText = fTotalDepots.toLocaleString('de-DE') + " FC"; 
+            document.getElementById('gl-stat-prets').innerText = fTotalPrets.toLocaleString('de-DE') + " FC";
+            document.getElementById('gl-stat-initial').innerText = fTotalInitiaux.toLocaleString('de-DE') + " FC"; 
+            document.getElementById('gl-stat-caisse').innerText = fCaisse.toLocaleString('de-DE') + " FC"; 
+            document.getElementById('gl-stat-solde-rendu').innerText = fTotalSoldeRendu.toLocaleString('de-DE') + " FC";
         }
 
         function renderEvolutionChart() {
@@ -857,14 +860,26 @@
             const ctx = canvas.getContext('2d'); const periodStr = document.getElementById('chartPeriodFilter').value;
             let allDates = new Set(); db.transactions.forEach(t => { if(t.date) allDates.add(t.date) }); db.comptes.forEach(c => { if(c.date) allDates.add(c.date) });
             let datesTriees = Array.from(allDates).sort();
-            let runningDepots = 0, runningPrets = 0, runningInitial = 0, runningCartes = 0; let chartData = [];
+            let runningDepots = 0, runningPrets = 0, runningInitial = 0, runningCartes = 0, runningSoldeRendu = 0; 
+            let chartData = [];
             datesTriees.forEach(date => {
-                let txsOnDate = db.transactions.filter(t => t.date === date); let comptesOnDate = db.comptes.filter(c => c.date === date);
+                let txsOnDate = db.transactions.filter(t => t.date === date); 
+                let comptesOnDate = db.comptes.filter(c => c.date === date);
                 runningDepots += txsOnDate.filter(t => t.type === 'depot').reduce((a,b) => a + safeNum(b.montant), 0); 
                 runningPrets += txsOnDate.filter(t => t.type === 'emprunt').reduce((a,b) => a + safeNum(b.montant), 0) - txsOnDate.filter(t => t.type === 'remboursement').reduce((a,b) => a + safeNum(b.montant), 0);
                 if (runningPrets < 0) runningPrets = 0;
-                runningInitial += comptesOnDate.reduce((a,b) => a + safeNum(b.montant_initial), 0); runningCartes += comptesOnDate.length * 500; 
-                chartData.push({ date: date, depots: runningDepots, prets: runningPrets, initial: runningInitial, cartes: runningCartes, caisse: runningDepots - runningPrets - runningInitial + runningCartes });
+                runningInitial += comptesOnDate.reduce((a,b) => a + safeNum(b.montant_initial), 0); 
+                runningCartes += comptesOnDate.length * 1000;
+                let soldesRendusDuJour = comptesOnDate
+                    .filter(c => c.statut === 'corbeille')
+                    .reduce((sum, c) => {
+                        let stats = calculerStatsCompte(c.id);
+                        let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
+                        return sum + soldeFinal;
+                    }, 0);
+                runningSoldeRendu += soldesRendusDuJour;
+                let caisseJour = runningDepots - runningPrets - runningInitial - runningSoldeRendu;
+                chartData.push({ date: date, depots: runningDepots, prets: runningPrets, initial: runningInitial, cartes: runningCartes, soldeRendu: runningSoldeRendu, caisse: caisseJour });
             });
             let filteredData = chartData;
             if (periodStr !== 'all') { const days = parseInt(periodStr); const cutoffDate = new Date(); cutoffDate.setDate(cutoffDate.getDate() - days); filteredData = chartData.filter(d => d.date >= cutoffDate.toISOString().split('T')[0]); }
@@ -872,8 +887,22 @@
             if (evolutionChartInstance) { evolutionChartInstance.destroy(); }
             evolutionChartInstance = new Chart(ctx, {
                 type: 'line',
-                data: { labels: labels, datasets: [ { label: 'Dépôts', data: filteredData.map(d => d.depots), borderColor: '#10b981', backgroundColor: '#10b981', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 2 }, { label: 'Dettes', data: filteredData.map(d => d.prets), borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 2 }, { label: 'Caisse', data: filteredData.map(d => d.caisse), borderColor: '#10b981', backgroundColor: '#10b981', borderWidth: 3, fill: false, tension: 0.4, pointRadius: 3 } ] },
-                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } }, x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } } }, plugins: { legend: { position: 'bottom', labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 8 } } } }
+                data: { labels: labels, datasets: [ 
+                    { label: 'Total Dépôts', data: filteredData.map(d => d.depots), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 3 }, 
+                    { label: 'Total Dettes', data: filteredData.map(d => d.prets), borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 3 }, 
+                    { label: 'Solde Rendu', data: filteredData.map(d => d.soldeRendu), borderColor: '#b55fe6', backgroundColor: 'rgba(181, 95, 230, 0.1)', borderWidth: 2, fill: false, tension: 0.4, pointRadius: 3 },
+                    { label: 'Caisse Réelle', data: filteredData.map(d => d.caisse), borderColor: '#6366f1', backgroundColor: 'rgba(99, 102, 241, 0.1)', borderWidth: 3, fill: false, tension: 0.4, pointRadius: 4 } 
+                ] },
+                options: { responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false }, 
+                    scales: { 
+                        y: { beginAtZero: true, grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af', callback: function(value) { return value.toLocaleString('de-DE'); } } }, 
+                        x: { grid: { color: 'rgba(255, 255, 255, 0.05)' }, ticks: { color: '#9ca3af' } } 
+                    }, 
+                    plugins: { 
+                        legend: { position: 'bottom', labels: { color: '#f9fafb', usePointStyle: true, boxWidth: 8 } },
+                        tooltip: { callbacks: { label: function(context) { return context.dataset.label + ': ' + context.parsed.y.toLocaleString('de-DE') + ' FC'; } } }
+                    } 
+                }
             });
         }
 
@@ -915,9 +944,6 @@
             tbody.appendChild(paginationRow);
         }
 
-        // ==========================================
-        // Création, Modification, Transaction, Clôture
-        // ==========================================
         function ouvrirModalCompte() {
             document.getElementById('modalTitle').innerText = "Créer un nouveau compte";
             document.getElementById('modalBody').innerHTML = `
@@ -927,27 +953,22 @@
                 <div class="form-group"><label>Montant Initial (FC)</label><input type="text" id="newCompteMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>
             `;
             let btn = document.getElementById('modalConfirmBtn');
-            btn.style.display = 'block';
-            btn.innerText = "Valider l'opération";
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
             btn.onclick = async () => {
                 let prenom = document.getElementById('newComptePrenom').value.trim(); let nom = document.getElementById('newCompteNom').value.trim();
                 let adresse = document.getElementById('newCompteAdresse').value.trim(); let montant = safeNum(document.getElementById('newCompteMontant').value);
                 if(!prenom || !nom || montant <= 0) return alert("Remplissez tout correctement.");
-
                 btnEnTraitement();
                 const { error } = await executeMutation('comptes', 'insert', { prenom, nom, adresse, montant_initial: montant, statut: 'actif', carte_payee: false, date: new Date().toISOString().split('T')[0] });
-                
                 if(error) { btnPret(); alert("Erreur : " + error.message); } 
                 else { fermerModal(); await actualiserInterface(); }
             };
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        /* MODIFICATION / CORRECTION EN CAS D'ERREUR DU COMPTE CLIENT */
         function ouvrirModalModificationCompte(compteId) {
             const compte = db.comptes.find(c => c.id === compteId);
             if (!compte) return alert("Compte non trouvé");
-            
             document.getElementById('modalTitle').innerText = `Corriger / Modifier Compte (${genererIdentifiantClient(compte.id)})`;
             document.getElementById('modalBody').innerHTML = `
                 <div style="background: rgba(239, 68, 68, 0.1); border:1px solid var(--rouge-dette); padding:10px; border-radius:8px; margin-bottom:15px; font-size:12px; color:#fca5a5;">
@@ -959,36 +980,24 @@
                 <div class="form-group"><label>Montant Initial (FC)</label><input type="text" id="editCompteMontant" class="input-montant" value="${safeNum(compte.montant_initial).toLocaleString('de-DE')}" oninput="formatMontantInput(this)" required></div>
             `;
             let btn = document.getElementById('modalConfirmBtn');
-            btn.style.display = 'block';
-            btn.innerText = "Sauvegarder les modifications";
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Sauvegarder les modifications";
             btn.onclick = async () => {
                 let prenom = document.getElementById('editComptePrenom').value.trim();
                 let nom = document.getElementById('editCompteNom').value.trim();
                 let adresse = document.getElementById('editCompteAdresse').value.trim();
                 let mnt = safeNum(document.getElementById('editCompteMontant').value);
-
                 if(!prenom || !nom || mnt <= 0) return alert("Veuillez saisir des informations valides.");
-
                 btnEnTraitement();
                 const { error } = await executeMutation('comptes', 'update', { prenom, nom, adresse, montant_initial: mnt }, 'id', compteId);
-
                 if(error) { btnPret(); alert("Erreur : " + error.message); } 
-                else { 
-                    showNotification("Compte mis à jour avec succès !", "success");
-                    fermerModal(); 
-                    await actualiserInterface(); 
-                }
+                else { showNotification("Compte mis à jour avec succès !", "success"); fermerModal(); await actualiserInterface(); }
             };
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        /* NOUVEL EMPRUNT AVEC OPTION DE REMBOURSEMENT INTÉGRÉE */
-  function ouvrirModalTransaction(compteId, type, isPlein) {
+        function ouvrirModalTransaction(compteId, type, isPlein) {
             if (type === 'depot' && isPlein) return alert("La carte est déjà pleine pour les dépôts.");
-            
-            let modalTitleText = "Nouveau Dépôt";
-            let optionTypeHtml = "";
-            
+            let modalTitleText = "Nouveau Dépôt"; let optionTypeHtml = "";
             if (type === 'emprunt' || type === 'remboursement') {
                 modalTitleText = "Opération Emprunt / Remboursement";
                 optionTypeHtml = `
@@ -1001,87 +1010,42 @@
                     </div>
                 `;
             }
-
             document.getElementById('modalTitle').innerText = modalTitleText;
             document.getElementById('modalBody').innerHTML = `
                 ${optionTypeHtml}
                 <div class="form-group"><label>Montant (FC)</label><input type="text" id="txMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>
             `;
-            
             let btn = document.getElementById('modalConfirmBtn');
-            btn.style.display = 'block';
-            btn.innerText = "Valider l'opération";
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
             btn.onclick = async () => {
                 let montant = safeNum(document.getElementById('txMontant').value);
                 if(montant <= 0) return alert("Montant invalide.");
-                
                 let selectedType = type;
                 let selectEl = document.getElementById('txTypeSelect');
                 if (selectEl) { selectedType = selectEl.value; }
-
-                // Contrôle de la capacité maximale des dépôts (montant_initial * 31) ET RÈGLE DE MODULO
                 if (selectedType === 'depot') {
                     let stats = calculerStatsCompte(compteId);
                     const compte = db.comptes.find(c => c.id === compteId);
-                    
-                    // NOUVELLE CONDITION MODULO : Le montant doit être un multiple exact du montant initial
-                    if (montant % safeNum(compte.montant_initial) !== 0) {
-                        return alert(`Dépôt refusé. Le montant doit être un multiple exact du montant initial (${safeNum(compte.montant_initial).toLocaleString('de-DE')} FC).`);
-                    }
-
+                    if (montant % safeNum(compte.montant_initial) !== 0) { return alert(`Dépôt refusé. Le montant doit être un multiple exact du montant initial (${safeNum(compte.montant_initial).toLocaleString('de-DE')} FC).`); }
                     let capaciteMax = safeNum(compte.montant_initial) * 31;
-                    if ((stats.totalDepots + montant) > capaciteMax) {
-                        let reste = capaciteMax - stats.totalDepots;
-                        return alert(`Opération refusée. Le total des dépôts ne peut pas dépasser ${capaciteMax.toLocaleString('de-DE')} FC.\nVous ne pouvez déposer que ${reste.toLocaleString('de-DE')} FC au maximum.`);
-                    }
+                    if ((stats.totalDepots + montant) > capaciteMax) { let reste = capaciteMax - stats.totalDepots; return alert(`Opération refusée. Le total des dépôts ne peut pas dépasser ${capaciteMax.toLocaleString('de-DE')} FC.\nVous ne pouvez déposer que ${reste.toLocaleString('de-DE')} FC au maximum.`); }
                 }
-
-               // Vérification si le remboursement dépasse la dette actuelle
                 if (selectedType === 'remboursement') {
                     let stats = calculerStatsCompte(compteId);
-                    if (stats.totalPrets <= 0) {
-                        return alert("Ce client n'a aucune dette en cours à rembourser.");
-                    }
-                    if (montant > stats.totalPrets) {
-                        return alert(`Le montant remboursé (${montant.toLocaleString('de-DE')} FC) dépasse la dette actuelle (${stats.totalPrets.toLocaleString('de-DE')} FC).`);
-                    }
+                    if (stats.totalPrets <= 0) { return alert("Ce client n'a aucune dette en cours à rembourser."); }
+                    if (montant > stats.totalPrets) { return alert(`Le montant remboursé (${montant.toLocaleString('de-DE')} FC) dépasse la dette actuelle (${stats.totalPrets.toLocaleString('de-DE')} FC).`); }
                 }
-
-                // NOUVELLE RÈGLE : L'emprunt doit être inférieur au solde rendu du compte concerné
                 if (selectedType === 'emprunt') {
                     let stats = calculerStatsCompte(compteId);
                     const compte = db.comptes.find(c => c.id === compteId);
-                    
-                    // Calcul du solde rendu spécifique à ce compte
                     let soldeRendu = stats.totalDepots - stats.totalPrets - safeNum(compte.montant_initial);
-                    
-                    // Déduction des frais de carte si elle n'est pas encore payée
-                    if (!compte.carte_payee) {
-                        soldeRendu -= 500;
-                    }
-
-                    // Validation : le montant doit être strictement inférieur au rendu
-                    if (montant >= soldeRendu) {
-                        return alert(`Opération refusée. Le montant de l'emprunt (${montant.toLocaleString('de-DE')} FC) doit être inférieur au rendu disponible de ce compte (${soldeRendu.toLocaleString('de-DE')} FC).`);
-                    }
+                    if (!compte.carte_payee) { soldeRendu -= 1000; }
+                    if (montant >= soldeRendu) { return alert(`Opération refusée. Le montant de l'emprunt (${montant.toLocaleString('de-DE')} FC) doit être inférieur au rendu disponible de ce compte (${soldeRendu.toLocaleString('de-DE')} FC).`); }
                 }
-
                 btnEnTraitement();
-                const { error } = await executeMutation('transactions', 'insert', { 
-                    compte_id: compteId, 
-                    type: selectedType, 
-                    montant: montant, 
-                    date: new Date().toISOString().split('T')[0], 
-                    cree_par: document.getElementById('session-user-name').innerText 
-                });
-                
-                if(error) { 
-                    btnPret(); 
-                    alert("Erreur : " + error.message); 
-                } else { 
-                    fermerModal(); 
-                    await actualiserInterface(); 
-                }
+                const { error } = await executeMutation('transactions', 'insert', { compte_id: compteId, type: selectedType, montant: montant, date: new Date().toISOString().split('T')[0], cree_par: document.getElementById('session-user-name').innerText });
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { fermerModal(); await actualiserInterface(); }
             };
             document.getElementById('actionModal').style.display = 'flex';
         }
@@ -1090,15 +1054,12 @@
             const compte = db.comptes.find(c => c.id === compteId);
             if (!compte) return;
             const stats = calculerStatsCompte(compteId);
-            
             let soldeRendu = stats.totalDepots - stats.totalPrets - safeNum(compte.montant_initial);
             let fraisCarteHtml = "";
-            
             if (!compte.carte_payee) {
-                soldeRendu -= 500;
-                fraisCarteHtml = `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Frais Carte non payée :</span> <strong style="color:var(--rouge-dette);">- 500 FC</strong></div>`;
+                soldeRendu -= 1000;
+                fraisCarteHtml = `<div style="display:flex; justify-content:space-between; margin-bottom:5px;"><span>Frais Carte non payée :</span> <strong style="color:var(--rouge-dette);">- 1000 FC</strong></div>`;
             }
-
             document.getElementById('modalTitle').innerText = "Clôturer le compte";
             document.getElementById('modalBody').innerHTML = `
                 <div style="background: rgba(255, 255, 255, 0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; border: 1px solid var(--border-couleur);">
@@ -1114,78 +1075,41 @@
                 </div>
                 <p style="color:var(--rouge-dette); text-align: center; font-weight: bold;">Confirmez-vous la mise à la corbeille de ce compte ?</p>
             `;
-            
             let btn = document.getElementById('modalConfirmBtn');
-            btn.style.display = 'block';
-            btn.innerText = "Valider l'opération";
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
             btn.onclick = async () => {
                 btnEnTraitement();
                 const { error } = await executeMutation('comptes', 'update', { statut: 'corbeille' }, 'id', compteId);
-                
                 if(error) { btnPret(); alert("Erreur : " + error.message); } 
                 else { fermerModal(); fermerCarteModal(); await actualiserInterface(); }
             };
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // ==========================================
-        // CARTE NUMÉRIQUE CLIENT (ALTERNANCE BLEU / ROUGE PAR DÉPÔT)
-        // ==========================================
-        function ouvrirCarteModal(compteId) {
-            selectedCompteId = compteId;
-            chargerCartePhysique(compteId);
-            document.getElementById('cardModal').style.display = 'flex';
-        }
-
+        function ouvrirCarteModal(compteId) { selectedCompteId = compteId; chargerCartePhysique(compteId); document.getElementById('cardModal').style.display = 'flex'; }
         function fermerCarteModal(e) {
             if (e && e.target !== document.getElementById('cardModal') && !e.target.classList.contains('btn-close-card') && !e.target.parentElement.classList.contains('btn-close-card')) return;
-            document.getElementById('cardModal').style.display = 'none';
-            selectedCompteId = null;
+            document.getElementById('cardModal').style.display = 'none'; selectedCompteId = null;
         }
 
         function chargerCartePhysique(compteId) {
             const compte = db.comptes.find(c => c.id === compteId);
             if (!compte) return;
-
             const stats = calculerStatsCompte(compteId);
             const mntInitial = safeNum(compte.montant_initial);
             const identifiant = genererIdentifiantClient(compte.id);
-
-            // Récupération de tous les dépôts dans l'ordre chronologique
-            const txDepots = db.transactions
-                .filter(t => t.compte_id === compteId && t.type === 'depot')
-                .sort((a, b) => a.id - b.id);
-
-            // Tableau pour les 31 cases
-            let boxColors = Array(31).fill(null);
-            let currentBoxIndex = 0;
-
-            // Parcours de chaque dépôt pour appliquer la couleur alternée (1er dépôt = Bleu, 2ème = Rouge, 3ème = Bleu...)
+            const txDepots = db.transactions.filter(t => t.compte_id === compteId && t.type === 'depot').sort((a, b) => a.id - b.id);
+            let boxColors = Array(31).fill(null); let currentBoxIndex = 0;
             txDepots.forEach((tx, depositIndex) => {
                 const colorClass = (depositIndex % 2 === 0) ? 'filled-blue' : 'filled-red';
                 const nbCasesPourCeDepot = Math.floor(safeNum(tx.montant) / mntInitial);
-
-                for (let i = 0; i < nbCasesPourCeDepot; i++) {
-                    if (currentBoxIndex < 31) {
-                        boxColors[currentBoxIndex] = colorClass;
-                        currentBoxIndex++;
-                    }
-                }
+                for (let i = 0; i < nbCasesPourCeDepot; i++) { if (currentBoxIndex < 31) { boxColors[currentBoxIndex] = colorClass; currentBoxIndex++; } }
             });
-
-            // Construction de la grille de 31 cases
             let boxesHtml = "";
             for (let i = 1; i <= 31; i++) {
                 let colorClass = boxColors[i - 1] || "";
-                boxesHtml += `
-                    <div class="card-box ${colorClass}">
-                        <span class="box-num">${i}</span>
-                        <span class="box-stamp"><i class="fa-solid fa-check"></i></span>
-                        <span class="box-label">${mntInitial.toLocaleString('de-DE')}</span>
-                    </div>
-                `;
+                boxesHtml += `<div class="card-box ${colorClass}"><span class="box-num">${i}</span><span class="box-stamp"><i class="fa-solid fa-check"></i></span><span class="box-label">${mntInitial.toLocaleString('de-DE')}</span></div>`;
             }
-
             let bodyHtml = `
                 <div class="card-header-top">
                     <div class="card-logo-area">
@@ -1200,16 +1124,13 @@
                         <div>Initial: <strong>${mntInitial.toLocaleString('de-DE')} FC</strong></div>
                     </div>
                 </div>
-
                 <div class="card-grid-31">${boxesHtml}</div>
-
                 <div class="card-footer-summary">
                     <div>Total Dépôts: <strong class="val-depot">${stats.totalDepots.toLocaleString('de-DE')} FC</strong></div>
                     <div>Emprunt/Dette: <strong class="val-dette">${stats.totalPrets.toLocaleString('de-DE')} FC</strong></div>
                     <div>Frais Carte: <strong>${compte.carte_payee ? 'PAYÉE (1000 FC)' : 'NON PAYÉE'}</strong></div>
                     <div>Cartes Perdues: <strong style="color:var(--rouge-dette);">${compte.carte_perdue_count || 0}</strong></div>
                 </div>
-
                 <div class="card-action-panel">
                     <button style="background:var(--vert-finance); color:white;" onclick="ouvrirModalTransaction(${compte.id}, 'depot', ${currentBoxIndex >= 31})"><i class="fa-solid fa-plus"></i> Dépôt</button>
                     <button style="background:var(--rouge-dette); color:white;" onclick="ouvrirModalTransaction(${compte.id}, 'emprunt', false)"><i class="fa-solid fa-hand-holding-dollar"></i> Emprunt / Remboursement</button>
@@ -1218,70 +1139,43 @@
                     <button style="background:#f59e0b; color:white;" onclick="declarerCartePerdue(${compte.id})"><i class="fa-solid fa-id-badge"></i> Perte Carte</button>
                 </div>
             `;
-
             document.getElementById('cardModalBody').innerHTML = bodyHtml;
         }
 
         async function payerFraisCarte(compteId) {
             btnEnTraitement();
             const { error } = await executeMutation('comptes', 'update', { carte_payee: true }, 'id', compteId);
-            if (!error) {
-                showNotification("Frais de carte de 500 FC encaissés avec succès !");
-                await actualiserInterface();
-            } else {
-                alert("Erreur lors du paiement : " + error.message);
-            }
+            if (!error) { showNotification("Frais de carte de 1000 FC encaissés avec succès !"); await actualiserInterface(); } 
+            else { alert("Erreur lors du paiement : " + error.message); }
         }
+
         function declarerCartePerdue(compteId) {
-        const compte = db.comptes.find(c => c.id === compteId);
-        if (!compte) return;
+            const compte = db.comptes.find(c => c.id === compteId);
+            if (!compte) return;
+            document.getElementById('modalTitle').innerText = "Déclarer une carte perdue";
+            document.getElementById('modalBody').innerHTML = `
+                <div style="background: rgba(245, 158, 11, 0.1); border:1px solid #f59e0b; padding:15px; border-radius:8px; margin-bottom:15px; font-size:14px; color:#fcd34d;">
+                    <i class="fa-solid fa-triangle-exclamation"></i> En déclarant cette carte comme perdue :
+                    <ul style="margin-top: 10px; margin-left: 20px;">
+                        <li>Le compteur de cartes perdues sera incrémenté.</li>
+                        <li>Le statut repassera à <strong>"Non Payée"</strong> (pour exiger les frais de remplacement de 1000 FC).</li>
+                    </ul>
+                </div>
+                <p style="text-align: center; font-weight: bold; color: var(--texte-blanc);">Confirmez-vous la perte pour le client ${compte.prenom} ${compte.nom} ?</p>
+            `;
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block'; btn.innerText = "Confirmer la perte"; btn.style.backgroundColor = "#f59e0b";
+            btn.onclick = async () => {
+                btnEnTraitement();
+                let currentCount = compte.carte_perdue_count ? parseInt(compte.carte_perdue_count) : 0;
+                const { error } = await executeMutation('comptes', 'update', { carte_perdue_count: currentCount + 1, carte_payee: false }, 'id', compteId);
+                if(error) { btnPret(); alert("Erreur : " + error.message); } 
+                else { showNotification("Carte déclarée perdue ", "warning"); fermerModal(); await actualiserInterface(); }
+                btn.style.backgroundColor = "var(--vert-finance)";
+            };
+            document.getElementById('actionModal').style.display = 'flex';
+        }
 
-        // Utilisation de la modale d'action générique
-        document.getElementById('modalTitle').innerText = "Déclarer une carte perdue";
-        document.getElementById('modalBody').innerHTML = `
-            <div style="background: rgba(245, 158, 11, 0.1); border:1px solid #f59e0b; padding:15px; border-radius:8px; margin-bottom:15px; font-size:14px; color:#fcd34d;">
-                <i class="fa-solid fa-triangle-exclamation"></i> En déclarant cette carte comme perdue :
-                <ul style="margin-top: 10px; margin-left: 20px;">
-                    <li>Le compteur de cartes perdues sera incrémenté.</li>
-                    <li>Le statut repassera à <strong>"Non Payée"</strong> (pour exiger les frais de remplacement).</li>
-                </ul>
-            </div>
-            <p style="text-align: center; font-weight: bold; color: var(--texte-blanc);">Confirmez-vous la perte pour le client ${compte.prenom} ${compte.nom} ?</p>
-        `;
-        
-        let btn = document.getElementById('modalConfirmBtn');
-        btn.style.display = 'block';
-        btn.innerText = "Confirmer la perte";
-        btn.style.backgroundColor = "#f59e0b"; // Couleur d'avertissement jaune/orange
-
-        btn.onclick = async () => {
-            btnEnTraitement();
-            let currentCount = compte.carte_perdue_count ? parseInt(compte.carte_perdue_count) : 0;
-            
-            // Mise à jour hors-ligne et Supabase via executeMutation
-            const { error } = await executeMutation('comptes', 'update', { 
-                carte_perdue_count: currentCount + 1,
-                carte_payee: false // Réinitialise le paiement
-            }, 'id', compteId);
-            
-            if(error) { 
-                btnPret(); 
-                alert("Erreur : " + error.message); 
-            } else { 
-                showNotification("Carte déclarée perdue avec succès !", "warning");
-                fermerModal(); 
-                await actualiserInterface(); 
-            }
-            
-            // Restauration de la couleur du bouton de la modale pour les autres actions
-            btn.style.backgroundColor = "var(--vert-finance)";
-        };
-        document.getElementById('actionModal').style.display = 'flex';
-    }
-
-        // ==========================================
-        // GESTION BOUTIQUE
-        // ==========================================
         function renderBoutique() {
             const tbody = document.getElementById('table-boutique-body'); tbody.innerHTML = "";
             if (db.boutique_employes.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color:var(--texte-gris);">Aucun employé enregistré.</td></tr>`; return; }
@@ -1314,11 +1208,11 @@
         function ouvrirModalNouvelEmployeBoutique() {
             document.getElementById('modalTitle').innerText = "Nouvel Employé Boutique";
             document.getElementById('modalBody').innerHTML = `<div class="form-group"><label>Prénom de l'employé</label><input type="text" id="boutiquePrenom" required></div><div class="form-group"><label>Nom de l'employé</label><input type="text" id="boutiqueNom" required></div><div class="form-group"><label>Salaire Mensuel Fixe (FC)</label><input type="text" id="boutiqueSalaire" class="input-montant" oninput="formatMontantInput(this)" required></div>`;
-            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
-            document.getElementById('modalConfirmBtn').onclick = async () => {
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
                 let prenom = document.getElementById('boutiquePrenom').value.trim(); let nom = document.getElementById('boutiqueNom').value.trim(); let salaire = safeNum(document.getElementById('boutiqueSalaire').value);
                 if(!prenom || !nom || salaire <= 0) return alert("Remplissez correctement tous les champs.");
-                
                 btnEnTraitement();
                 const { error } = await executeMutation('boutique_employes', 'insert', { prenom, nom, salaire, dette_en_cours: 0 });
                 if(error) { btnPret(); alert("Erreur : " + error.message); } 
@@ -1331,10 +1225,10 @@
             const emp = db.boutique_employes.find(e => e.id === employeId); if(!emp) return;
             document.getElementById('modalTitle').innerText = `Ajouter dette - ${emp.prenom} ${emp.nom}`;
             document.getElementById('modalBody').innerHTML = `<div style="margin-bottom: 15px; font-size: 14px; color: var(--texte-gris);">Dette actuelle : <strong style="color:var(--rouge-dette);">${safeNum(emp.dette_en_cours).toLocaleString('de-DE')} FC</strong></div><div class="form-group"><label>Montant nouvelle dette (FC)</label><input type="text" id="nouvelleDetteEmp" class="input-montant" oninput="formatMontantInput(this)" required></div>`;
-            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
-            document.getElementById('modalConfirmBtn').onclick = async () => {
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
                 let mnt = safeNum(document.getElementById('nouvelleDetteEmp').value); if(mnt <= 0) return alert("Montant invalide.");
-                
                 btnEnTraitement();
                 const { error } = await executeMutation('boutique_employes', 'update', { dette_en_cours: safeNum(emp.dette_en_cours) + mnt }, 'id', employeId);
                 if(error) { btnPret(); alert("Erreur : " + error.message); } 
@@ -1347,7 +1241,6 @@
             const emp = db.boutique_employes.find(e => e.id === employeId); if(!emp) return;
             let salaire = safeNum(emp.salaire); let dette = safeNum(emp.dette_en_cours); let net = salaire - dette;
             let moisDefaut = new Date().toLocaleString('fr-FR', { month: 'long', year: 'numeric' }); moisDefaut = moisDefaut.charAt(0).toUpperCase() + moisDefaut.slice(1);
-
             document.getElementById('modalTitle').innerText = `Clôturer le mois - ${emp.prenom} ${emp.nom}`;
             document.getElementById('modalBody').innerHTML = `
                 <div style="background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px; font-size: 14px; border: 1px solid var(--border-couleur);">
@@ -1359,16 +1252,14 @@
                 <div class="form-group"><label>Mois concerné</label><input type="text" id="clotureMois" value="${moisDefaut}" required></div>
                 <div class="form-group"><label>Statut de paiement</label><select id="clotureStatut"><option value="Payé">✅ Payé</option><option value="Non Payé">❌ Non Payé</option></select></div>
             `;
-            
-            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
-            document.getElementById('modalConfirmBtn').onclick = async () => {
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
                 let moisTexte = document.getElementById('clotureMois').value.trim(); if(!moisTexte) return alert("Indiquez le mois.");
-                
                 btnEnTraitement();
                 const { error: errHist } = await executeMutation('boutique_historique', 'insert', { employe_id: employeId, mois: moisTexte, salaire: salaire, dette: dette, statut: document.getElementById('clotureStatut').value });
                 if (errHist) { btnPret(); return alert("Erreur : " + errHist.message); }
                 const { error: errUpdate } = await executeMutation('boutique_employes', 'update', { dette_en_cours: 0 }, 'id', employeId);
-                
                 if (errUpdate) { btnPret(); alert("Erreur : " + errUpdate.message); } 
                 else { fermerModal(); await actualiserInterface(); }
             };
@@ -1391,7 +1282,7 @@
             }
             htmlTable += `</tbody></table></div>`;
             document.getElementById('modalBody').innerHTML = htmlTable; document.getElementById('modalConfirmBtn').style.display = 'none';
-            document.querySelector('.btn-cancel').innerText = "Fermer"; document.getElementById('actionModal').style.display = 'flex';
+            document.querySelector('#actionModal .btn-cancel').innerText = "Fermer"; document.getElementById('actionModal').style.display = 'flex';
         }
 
         async function basculerStatutMois(histId, statutActuel, employeId) {
@@ -1399,9 +1290,6 @@
             if(!error) { await fetchAllData(); voirHistoriqueEmploye(employeId); } else { alert("Erreur : " + error.message); }
         }
 
-        // ==========================================
-        // GESTION HORS CARTE
-        // ==========================================
         function calculerStatsHC(personneId) {
             const txs = db.transactions_hc.filter(t => t.dette_id === personneId);
             const totalEmprunts = txs.filter(t => t.type === 'emprunt').reduce((a, b) => a + safeNum(b.montant), 0);
@@ -1417,13 +1305,11 @@
             const tbody = document.getElementById('table-dettes-hc-body'); tbody.innerHTML = "";
             const searchTxt = document.getElementById('searchDettesHC').value.toLowerCase();
             let personnes = db.dettes_hc.filter(p => p.nom.toLowerCase().includes(searchTxt) || p.prenom.toLowerCase().includes(searchTxt));
-
             personnes.forEach(p => {
                 let stats = calculerStatsHC(p.id); let nomColor = 'var(--texte-blanc)'; let statutBadge = '';
                 if (stats.soldeGlobal > 0) { nomColor = 'var(--vert-finance)'; statutBadge = '<span class="badge badge-success">Garde Active</span>'; } 
                 else if (stats.soldeGlobal < 0) { nomColor = 'var(--rouge-dette)'; statutBadge = '<span class="badge badge-danger">Dette à payer</span>'; } 
                 else { statutBadge = '<span class="badge badge-neutral">Soldé</span>'; }
-
                 let tr = document.createElement('tr');
                 tr.innerHTML = `
                     <td style="color: ${nomColor}; font-weight: bold; cursor: pointer; text-decoration: underline;" onclick="ouvrirHistoriqueHC(${p.id})">${p.prenom} ${p.nom}</td>
@@ -1452,22 +1338,19 @@
         function ouvrirModalNouveauProfilHC(typeAction = 'emprunt') {
             document.getElementById('modalTitle').innerText = typeAction === 'emprunt' ? "Nouveau Profil (Prêt)" : "Nouveau Profil (Garde Argent)";
             document.getElementById('modalBody').innerHTML = `<div class="form-group"><label>Prénom</label><input type="text" id="hcPrenom" required></div><div class="form-group"><label>Nom</label><input type="text" id="hcNom" required></div><div class="form-group"><label>Montant (FC)</label><input type="text" id="hcMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>${typeAction === 'emprunt' ? `<div class="form-group"><label>Commentaire (Optionnel)</label><textarea id="hcCommentaire"></textarea></div>` : ``}`;
-            document.getElementById('modalConfirmBtn').style.display = 'block';
-            document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
-            document.getElementById('modalConfirmBtn').onclick = async () => {
+            let btn = document.getElementById('modalConfirmBtn');
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
+            btn.onclick = async () => {
                 let prenom = document.getElementById('hcPrenom').value.trim(); let nom = document.getElementById('hcNom').value.trim(); let montant = safeNum(document.getElementById('hcMontant').value);
                 if(!prenom || !nom || montant <= 0) return alert("Remplissez correctement tous les champs.");
                 let isoDate = new Date().toISOString().split('T')[0];
-                
                 btnEnTraitement();
                 const { data, error } = await executeMutation('dettes_hors_carte', 'insert', { prenom, nom, date_creation: isoDate });
-                
                 if(error) { btnPret(); alert("Erreur : " + error.message); } 
                 else if (data && data.length > 0) {
                     let txPayload = { dette_id: data[0].id, type: typeAction, montant: montant, date: isoDate, cree_par: document.getElementById('session-user-name').innerText };
                     if (document.getElementById('hcCommentaire')) txPayload.commentaire = document.getElementById('hcCommentaire').value.trim();
                     const txRes = await executeMutation('transactions_hors_carte', 'insert', txPayload);
-                    
                     if (txRes.error) { btnPret(); alert("Erreur transaction : " + txRes.error.message); } 
                     else { fermerModal(); await actualiserInterface(); }
                 }
@@ -1483,7 +1366,6 @@
             else if(type === 'remboursement') typeText = 'Recevoir Remboursement';
             else if(type === 'garde') typeText = 'Garder Argent';
             else if(type === 'retrait') typeText = "Retrait Argent Gardé";
-
             document.getElementById('modalTitle').innerText = `${typeText} - ${personne.prenom} ${personne.nom}`;
             document.getElementById('modalBody').innerHTML = `
                 <div style="background: rgba(255,255,255,0.05); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid var(--border-couleur);">
@@ -1493,14 +1375,11 @@
                 <div class="form-group"><label>Montant (FC)</label><input type="text" id="hcTxMontant" class="input-montant" oninput="formatMontantInput(this)" required></div>
                 <div class="form-group"><label>Commentaire (Optionnel)</label><textarea id="hcTxCommentaire" placeholder="Note ou motif..."></textarea></div>
             `;
-            
             let btn = document.getElementById('modalConfirmBtn');
-            btn.style.display = 'block';
-            btn.innerText = "Valider l'opération";
+            btn.style.display = 'block'; btn.style.backgroundColor = "var(--vert-finance)"; btn.innerText = "Valider l'opération";
             btn.onclick = async () => {
                 let montant = safeNum(document.getElementById('hcTxMontant').value);
                 if (montant <= 0) return alert("Montant invalide.");
-
                 if (type === 'remboursement') {
                     if (stats.soldeDette <= 0) return alert("Cette personne n'a aucune dette en cours à rembourser.");
                     if (montant > stats.soldeDette) return alert(`Le montant remboursé (${montant.toLocaleString('de-DE')} FC) dépasse la dette actuelle (${stats.soldeDette.toLocaleString('de-DE')} FC).`);
@@ -1509,19 +1388,10 @@
                     if (stats.soldeGarde <= 0) return alert("Aucun solde gardé disponible à retirer.");
                     if (montant > stats.soldeGarde) return alert(`Le montant demandé (${montant.toLocaleString('de-DE')} FC) dépasse le solde gardé (${stats.soldeGarde.toLocaleString('de-DE')} FC).`);
                 }
-
                 btnEnTraitement();
                 let isoDate = new Date().toISOString().split('T')[0];
                 let commentaire = document.getElementById('hcTxCommentaire').value.trim();
-                const { error } = await executeMutation('transactions_hors_carte', 'insert', {
-                    dette_id: personneId,
-                    type: type,
-                    montant: montant,
-                    date: isoDate,
-                    commentaire: commentaire,
-                    cree_par: document.getElementById('session-user-name').innerText
-                });
-
+                const { error } = await executeMutation('transactions_hors_carte', 'insert', { dette_id: personneId, type: type, montant: montant, date: isoDate, commentaire: commentaire, cree_par: document.getElementById('session-user-name').innerText });
                 if (error) { btnPret(); alert("Erreur : " + error.message); }
                 else { fermerModal(); await actualiserInterface(); }
             };
@@ -1541,37 +1411,24 @@
                         </thead>
                         <tbody>
             `;
-            if (txs.length === 0) {
-                htmlTable += `<tr><td colspan="5" style="text-align:center;">Aucune transaction enregistrée.</td></tr>`;
-            } else {
+            if (txs.length === 0) { htmlTable += `<tr><td colspan="5" style="text-align:center;">Aucune transaction enregistrée.</td></tr>`; } 
+            else {
                 txs.forEach(t => {
                     let typeBadge = '';
                     if (t.type === 'emprunt') typeBadge = '<span class="badge badge-danger">Prêt (Dette)</span>';
                     else if (t.type === 'remboursement') typeBadge = '<span class="badge badge-success">Remboursement</span>';
                     else if (t.type === 'garde') typeBadge = '<span class="badge badge-success">Garde</span>';
                     else if (t.type === 'retrait') typeBadge = '<span class="badge badge-warning">Retrait</span>';
-
-                    htmlTable += `
-                        <tr>
-                            <td>${t.date || '-'}</td>
-                            <td>${typeBadge}</td>
-                            <td style="font-weight:bold;">${safeNum(t.montant).toLocaleString('de-DE')} FC</td>
-                            <td>${t.commentaire || '-'}</td>
-                            <td>${t.cree_par || '-'}</td>
-                        </tr>
-                    `;
+                    htmlTable += `<tr><td>${t.date || '-'}</td><td>${typeBadge}</td><td style="font-weight:bold;">${safeNum(t.montant).toLocaleString('de-DE')} FC</td><td>${t.commentaire || '-'}</td><td>${t.cree_par || '-'}</td></tr>`;
                 });
             }
             htmlTable += `</tbody></table></div>`;
             document.getElementById('modalBody').innerHTML = htmlTable;
             document.getElementById('modalConfirmBtn').style.display = 'none';
-            document.querySelector('.btn-cancel').innerText = "Fermer";
+            document.querySelector('#actionModal .btn-cancel').innerText = "Fermer";
             document.getElementById('actionModal').style.display = 'flex';
         }
 
-        // ==========================================
-        // HISTORIQUE GLOBAL & CORBEILLE
-        // ==========================================
         function rechercherHistorique() { currentPageHistorique = 1; renderHistorique(); }
         function changerPageHistorique(dir) { currentPageHistorique += dir; renderHistorique(); }
 
@@ -1579,9 +1436,7 @@
             const tbody = document.getElementById('table-historique-body');
             if (!tbody) return;
             tbody.innerHTML = "";
-
             const searchTxt = (document.getElementById('searchHistorique')?.value || "").toLowerCase();
-
             let list = db.transactions.filter(t => verifierFiltreDate(t.date)).filter(t => {
                 if (!searchTxt) return true;
                 let compte = db.comptes.find(c => c.id === t.compte_id);
@@ -1589,178 +1444,112 @@
                 let codeClient = compte ? genererIdentifiantClient(compte.id).toLowerCase() : "";
                 return t.type.toLowerCase().includes(searchTxt) || nomComplet.includes(searchTxt) || codeClient.includes(searchTxt) || (t.cree_par && t.cree_par.toLowerCase().includes(searchTxt));
             }).sort((a, b) => b.id - a.id);
-
             const totalPages = Math.ceil(list.length / itemsPerPageHistorique) || 1;
             if (currentPageHistorique > totalPages) currentPageHistorique = totalPages;
             if (currentPageHistorique < 1) currentPageHistorique = 1;
-
             const pageItems = list.slice((currentPageHistorique - 1) * itemsPerPageHistorique, currentPageHistorique * itemsPerPageHistorique);
-
-            if (pageItems.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--texte-gris);">Aucune opération trouvée.</td></tr>`;
-                return;
-            }
-
+            if (pageItems.length === 0) { tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px; color: var(--texte-gris);">Aucune opération trouvée.</td></tr>`; return; }
             pageItems.forEach(t => {
                 let compte = db.comptes.find(c => c.id === t.compte_id);
                 let clientNom = compte ? `${compte.prenom} ${compte.nom}` : "Client Inconnu";
                 let clientCode = compte ? genererIdentifiantClient(compte.id) : "-";
-
                 let typeLabel = "";
                 if (t.type === 'depot') typeLabel = '<span class="badge badge-success">Dépôt</span>';
                 else if (t.type === 'emprunt') typeLabel = '<span class="badge badge-danger">Emprunt</span>';
                 else if (t.type === 'remboursement') typeLabel = '<span class="badge badge-success">Remboursement</span>';
-
                 let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${t.date || '-'}</td>
-                    <td style="font-weight:bold;">${clientCode}</td>
-                    <td><strong>${clientNom}</strong></td>
-                    <td>${typeLabel}</td>
-                    <td style="font-weight:bold;">${safeNum(t.montant).toLocaleString('de-DE')} FC</td>
-                    <td>${t.cree_par || 'Système'}</td>
-                `;
+                tr.innerHTML = `<td>${t.date || '-'}</td><td style="font-weight:bold;">${clientCode}</td><td><strong>${clientNom}</strong></td><td>${typeLabel}</td><td style="font-weight:bold;">${safeNum(t.montant).toLocaleString('de-DE')} FC</td><td>${t.cree_par || 'Système'}</td>`;
                 tbody.appendChild(tr);
             });
-
             let paginationRow = document.createElement('tr');
-            paginationRow.innerHTML = `
-                <td colspan="6" style="text-align:center; padding: 15px; border-bottom: none;">
-                    <button class="btn-cancel" style="width: auto; padding: 6px 14px; margin-right: 10px;" ${currentPageHistorique <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="changerPageHistorique(-1)"><i class="fa-solid fa-chevron-left"></i> Précédent</button>
-                    <span style="font-weight: bold; color: var(--texte-blanc);">Page ${currentPageHistorique} sur ${totalPages}</span>
-                    <button class="btn-cancel" style="width: auto; padding: 6px 14px; margin-left: 10px;" ${currentPageHistorique >= totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="changerPageHistorique(1)">Suivant <i class="fa-solid fa-chevron-right"></i></button>
-                </td>
-            `;
+            paginationRow.innerHTML = `<td colspan="6" style="text-align:center; padding: 15px; border-bottom: none;"><button class="btn-cancel" style="width: auto; padding: 6px 14px; margin-right: 10px;" ${currentPageHistorique <= 1 ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="changerPageHistorique(-1)"><i class="fa-solid fa-chevron-left"></i> Précédent</button><span style="font-weight: bold; color: var(--texte-blanc);">Page ${currentPageHistorique} sur ${totalPages}</span><button class="btn-cancel" style="width: auto; padding: 6px 14px; margin-left: 10px;" ${currentPageHistorique >= totalPages ? 'disabled style="opacity:0.4; cursor:not-allowed;"' : ''} onclick="changerPageHistorique(1)">Suivant <i class="fa-solid fa-chevron-right"></i></button></td>`;
             tbody.appendChild(paginationRow);
         }
 
         function renderCorbeille() {
-    const tbody = document.getElementById('table-corbeille-body'); 
-    if (!tbody) return;
-    tbody.innerHTML = "";
-    
-    // Tri par date / ID décroissant (la dernière carte sortie s'affiche en premier)
-    let comptesCorbeille = db.comptes
-        .filter(c => c.statut === 'corbeille')
-        .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id);
+            const tbody = document.getElementById('table-corbeille-body'); 
+            if (!tbody) return;
+            tbody.innerHTML = "";
+            let comptesCorbeille = db.comptes.filter(c => c.statut === 'corbeille').sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id);
+            if (comptesCorbeille.length === 0) { tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color:var(--texte-gris);">Aucun compte dans la corbeille.</td></tr>`; return; }
+            comptesCorbeille.forEach(c => {
+                let stats = calculerStatsCompte(c.id);
+                let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
+                let tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${c.date || '-'}</td>
+                    <td style="color:var(--texte-blanc); font-weight:bold;">${c.prenom} ${c.nom} (${genererIdentifiantClient(c.id)})</td>
+                    <td>${c.adresse}</td>
+                    <td>${safeNum(c.montant_initial).toLocaleString('de-DE')} FC</td>
+                    <td class="val-depot">+ ${stats.totalDepots.toLocaleString('de-DE')} FC</td>
+                    <td class="val-dette">- ${stats.totalPrets.toLocaleString('de-DE')} FC</td>
+                    <td>${c.carte_payee ? '<span class="badge badge-success">Payée</span>' : '<span class="badge badge-danger">-1000 FC</span>'}</td>
+                    <td style="color: ${soldeFinal >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'}; font-weight: bold;">${soldeFinal.toLocaleString('de-DE')} FC</td>
+                    <td class="admin-action" style="display: ${currentRole === 'admin' ? 'table-cell' : 'none'};">
+                        <button class="add-btn" style="padding: 5px 10px; font-size: 12px; background-color: var(--vert-finance);" onclick="restaurerCompte(${c.id})"><i class="fa-solid fa-rotate-left"></i> Restaurer</button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
 
-    if (comptesCorbeille.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color:var(--texte-gris);">Aucun compte dans la corbeille.</td></tr>`;
-        return;
-    }
-
-    comptesCorbeille.forEach(c => {
-        let stats = calculerStatsCompte(c.id);
-        let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 500);
-        let tr = document.createElement('tr');
-        tr.innerHTML = `
-            <td>${c.date || '-'}</td>
-            <td style="color:var(--texte-blanc); font-weight:bold;">${c.prenom} ${c.nom} (${genererIdentifiantClient(c.id)})</td>
-            <td>${c.adresse}</td>
-            <td>${safeNum(c.montant_initial).toLocaleString('de-DE')} FC</td>
-            <td class="val-depot">+ ${stats.totalDepots.toLocaleString('de-DE')} FC</td>
-            <td class="val-dette">- ${stats.totalPrets.toLocaleString('de-DE')} FC</td>
-            <td>${c.carte_payee ? '<span class="badge badge-success">Payée</span>' : '<span class="badge badge-danger">-500 FC</span>'}</td>
-            <td style="color: ${soldeFinal >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'}; font-weight: bold;">${soldeFinal.toLocaleString('de-DE')} FC</td>
-            <td class="admin-action" style="display: ${currentRole === 'admin' ? 'table-cell' : 'none'};">
-                <button class="add-btn" style="padding: 5px 10px; font-size: 12px; background-color: var(--vert-finance);" onclick="restaurerCompte(${c.id})"><i class="fa-solid fa-rotate-left"></i> Restaurer</button>
-            </td>
-        `;
-        tbody.appendChild(tr);
-    });
-}
-
-        async function restaurerCompteCorbeille(compteId) {
+        async function restaurerCompte(compteId) {
             if (!confirm("Voulez-vous restaurer ce compte client dans la liste active ?")) return;
             const { error } = await executeMutation('comptes', 'update', { statut: 'actif' }, 'id', compteId);
-            if (!error) {
-                showNotification("Compte restauré avec succès !", "success");
-                await actualiserInterface();
-            } else {
-                alert("Erreur : " + error.message);
-            }
+            if (!error) { showNotification("Compte restauré avec succès !", "success"); await actualiserInterface(); } 
+            else { alert("Erreur : " + error.message); }
         }
+        async function restaurerCompteCorbeille(compteId) { return restaurerCompte(compteId); }
 
         async function supprimerDefinitivementCorbeille(compteId) {
             if (!confirm("⚠️ Action irréversible : Voulez-vous supprimer définitivement ce compte et son historique ?")) return;
             await executeMutation('transactions', 'delete', null, 'compte_id', compteId);
             const { error } = await executeMutation('comptes', 'delete', null, 'id', compteId);
-            if (!error) {
-                showNotification("Compte supprimé définitivement.", "warning");
-                await actualiserInterface();
-            } else {
-                alert("Erreur : " + error.message);
-            }
+            if (!error) { showNotification("Compte supprimé définitivement.", "warning"); await actualiserInterface(); } 
+            else { alert("Erreur : " + error.message); }
         }
 
         function purgerCorbeilleMensuelle() {
             let corbeilleComptes = db.comptes.filter(c => c.statut === 'corbeille');
             if (corbeilleComptes.length === 0) return alert("La corbeille est vide, rien à purger.");
-
             if (!confirm("Voulez-vous exporter en Excel et purger les comptes clôturés ?")) return;
-
             let exportData = corbeilleComptes.map(c => {
                 let stats = calculerStatsCompte(c.id);
                 let soldeRendu = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
                 return {
                     "ID Client": genererIdentifiantClient(c.id),
-                    "Prénom": c.prenom,
-                    "Nom": c.nom,
-                    "Adresse": c.adresse,
+                    "Prénom": c.prenom, "Nom": c.nom, "Adresse": c.adresse,
                     "Montant Initial": c.montant_initial,
-                    "Total Dépôts": stats.totalDepots,
-                    "Total Dettes": stats.totalPrets,
+                    "Total Dépôts": stats.totalDepots, "Total Dettes": stats.totalPrets,
                     "Frais Carte": c.carte_payee ? "Payée" : "Non payée (-1000 FC)",
-                    "Solde Final Rendu": soldeRendu,
-                    "Date Clôture": c.date || ""
+                    "Solde Final Rendu": soldeRendu, "Date Clôture": c.date || ""
                 };
             });
-
             let ws = XLSX.utils.json_to_sheet(exportData);
             let wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Comptes Clôturés");
             let fileName = `Purge_Corbeille_Bwakisa_${new Date().toISOString().split('T')[0]}.xlsx`;
             XLSX.writeFile(wb, fileName);
-
             showNotification("Export Excel généré avec succès.", "success");
         }
 
-        // ==========================================
-        // GESTION AGENTS / UTILISATEURS ADMIN
-        // ==========================================
         async function ouvrirModalGestionAgents() {
             if (currentRole !== 'admin') return alert("Accès réservé aux administrateurs.");
-
             document.querySelector('#actionModal .modal-content').classList.add('modal-large');
             document.getElementById('modalTitle').innerText = "Gestion des Utilisateurs / Agents";
-
             let { data: users, error } = await supabaseClient.from('authatification').select('*');
             if (error) { alert("Erreur chargement agents: " + error.message); return; }
-
             let rowsHtml = "";
             (users || []).forEach(u => {
-                rowsHtml += `
-                    <tr>
-                        <td><strong>${u.nom}</strong></td>
-                        <td><span class="badge ${u.fonction === 'admin' ? 'badge-danger' : 'badge-success'}">${u.fonction}</span></td>
-                        <td>••••••••</td>
-                        <td>
-                            ${u.fonction !== 'admin' ? `<button class="delete-icon" onclick="supprimerAgent(${u.id})"><i class="fa-solid fa-trash-can"></i></button>` : '<em>SuperAdmin</em>'}
-                        </td>
-                    </tr>
-                `;
+                rowsHtml += `<tr><td><strong>${u.nom}</strong></td><td><span class="badge ${u.fonction === 'admin' ? 'badge-danger' : 'badge-success'}">${u.fonction}</span></td><td>••••••••</td><td>${u.fonction !== 'admin' ? `<button class="delete-icon" onclick="supprimerAgent(${u.id})"><i class="fa-solid fa-trash-can"></i></button>` : '<em>SuperAdmin</em>'}</td></tr>`;
             });
-
             let bodyHtml = `
                 <div style="margin-bottom:20px; padding:15px; background:rgba(255,255,255,0.03); border-radius:10px; border:1px solid var(--border-couleur);">
                     <h4 style="color:var(--vert-finance); margin-bottom:10px;">Ajouter un nouvel agent</h4>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                         <input type="text" id="newAgentNom" placeholder="Nom de l'agent" class="filter-input" style="flex:1; min-width:140px;">
                         <input type="password" id="newAgentPass" placeholder="Mot de passe" class="filter-input" style="flex:1; min-width:140px;">
-                        <select id="newAgentRole" class="filter-input" style="width:120px;">
-                            <option value="agent">Agent</option>
-                            <option value="admin">Admin</option>
-                        </select>
+                        <select id="newAgentRole" class="filter-input" style="width:120px;"><option value="agent">Agent</option><option value="admin">Admin</option></select>
                         <button class="add-btn" onclick="ajouterAgent()"><i class="fa-solid fa-user-plus"></i> Créer</button>
                     </div>
                 </div>
@@ -1771,10 +1560,9 @@
                     </table>
                 </div>
             `;
-
             document.getElementById('modalBody').innerHTML = bodyHtml;
             document.getElementById('modalConfirmBtn').style.display = 'none';
-            document.querySelector('.btn-cancel').innerText = "Fermer";
+            document.querySelector('#actionModal .btn-cancel').innerText = "Fermer";
             document.getElementById('actionModal').style.display = 'flex';
         }
 
@@ -1782,25 +1570,17 @@
             let nom = document.getElementById('newAgentNom').value.trim();
             let pass = document.getElementById('newAgentPass').value;
             let role = document.getElementById('newAgentRole').value;
-
             if (!nom || !pass) return alert("Saisissez un nom et un mot de passe.");
-
             const { error } = await supabaseClient.from('authatification').insert([{ nom, mot_de_passe: pass, fonction: role }]);
             if (error) alert("Erreur création : " + error.message);
-            else {
-                showNotification("Nouvel utilisateur créé !");
-                ouvrirModalGestionAgents();
-            }
+            else { showNotification("Nouvel utilisateur créé !"); ouvrirModalGestionAgents(); }
         }
 
         async function supprimerAgent(userId) {
             if (!confirm("Voulez-vous supprimer cet agent ?")) return;
             const { error } = await supabaseClient.from('authatification').delete().eq('id', userId);
             if (error) alert("Erreur suppression : " + error.message);
-            else {
-                showNotification("Utilisateur supprimé.");
-                ouvrirModalGestionAgents();
-            }
+            else { showNotification("Utilisateur supprimé."); ouvrirModalGestionAgents(); }
         }
     </script>
 </body>
