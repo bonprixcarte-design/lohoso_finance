@@ -831,6 +831,8 @@
             let revenusCartes = (cartesPayeesActifs + cartesPayeesClotures) * 500;
             let totalInitiaux = db.comptes.filter(c => c.statut === 'actif').reduce((a, b) => a + safeNum(b.montant_initial), 0);
             let caisse = totalDepots - totalPrets - totalInitiaux + revenusCartes;
+            let fTotalSorties = fTotalPrets + fTotalSoldeRendu;
+            document.getElementById('gl-stat-total-sortie').innerText = fTotalSorties.toLocaleString('de-DE') + " FC";
 
             document.getElementById('stat-depots').innerText = totalDepots.toLocaleString('de-DE') + " FC"; document.getElementById('stat-prets').innerText = totalPrets.toLocaleString('de-DE') + " FC";
             document.getElementById('stat-cartes').innerText = revenusCartes.toLocaleString('de-DE') + " FC"; document.getElementById('stat-initial').innerText = totalInitiaux.toLocaleString('de-DE') + " FC"; document.getElementById('stat-caisse').innerText = caisse.toLocaleString('de-DE') + " FC";
@@ -1310,7 +1312,7 @@
         }
 
         function ouvrirModalNouvelEmployeBoutique() {
-            document.getElementById('modalTitle').innerText = "Nouvel Employé Pharmacie";
+            document.getElementById('modalTitle').innerText = "Nouvel Employé Boutique";
             document.getElementById('modalBody').innerHTML = `<div class="form-group"><label>Prénom de l'employé</label><input type="text" id="boutiquePrenom" required></div><div class="form-group"><label>Nom de l'employé</label><input type="text" id="boutiqueNom" required></div><div class="form-group"><label>Salaire Mensuel Fixe (FC)</label><input type="text" id="boutiqueSalaire" class="input-montant" oninput="formatMontantInput(this)" required></div>`;
             document.getElementById('modalConfirmBtn').innerText = "Valider l'opération";
             document.getElementById('modalConfirmBtn').onclick = async () => {
@@ -1633,39 +1635,40 @@
         }
 
         function renderCorbeille() {
-            const tbody = document.getElementById('table-corbeille-body');
-            if (!tbody) return;
-            tbody.innerHTML = "";
+    const tbody = document.getElementById('table-corbeille-body'); 
+    if (!tbody) return;
+    tbody.innerHTML = "";
+    
+    // Tri par date / ID décroissant (la dernière carte sortie s'affiche en premier)
+    let comptesCorbeille = db.comptes
+        .filter(c => c.statut === 'corbeille')
+        .sort((a, b) => (b.date || '').localeCompare(a.date || '') || b.id - a.id);
 
-            let corbeilleComptes = db.comptes.filter(c => c.statut === 'corbeille');
-            if (corbeilleComptes.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="8" style="text-align:center; padding:20px; color:var(--texte-gris);">La corbeille est vide.</td></tr>`;
-                return;
-            }
+    if (comptesCorbeille.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding: 20px; color:var(--texte-gris);">Aucun compte dans la corbeille.</td></tr>`;
+        return;
+    }
 
-            corbeilleComptes.forEach(c => {
-                let stats = calculerStatsCompte(c.id);
-                let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 1000);
-
-                let tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${c.prenom} ${c.nom}</strong> (${genererIdentifiantClient(c.id)})</td>
-                    <td>${c.adresse}</td>
-                    <td>${safeNum(c.montant_initial).toLocaleString('de-DE')} FC</td>
-                    <td class="val-depot">+${stats.totalDepots.toLocaleString('de-DE')} FC</td>
-                    <td class="val-dette">-${stats.totalPrets.toLocaleString('de-DE')} FC</td>
-                    <td>${c.carte_payee ? '<span class="badge badge-success">Payée</span>' : '<span class="badge badge-danger">-1000 FC</span>'}</td>
-                    <td style="font-weight:bold; color:${soldeFinal >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'};">${soldeFinal.toLocaleString('de-DE')} FC</td>
-                    <td class="admin-action" style="display: ${currentRole === 'admin' ? 'table-cell' : 'none'};">
-                        <div class="action-icons">
-                            <button class="add-icon" onclick="restaurerCompteCorbeille(${c.id})" title="Restaurer Compte"><i class="fa-solid fa-rotate-left"></i></button>
-                            <button class="delete-icon" onclick="supprimerDefinitivementCorbeille(${c.id})" title="Supprimer définitivement"><i class="fa-solid fa-trash-can"></i></button>
-                        </div>
-                    </td>
-                `;
-                tbody.appendChild(tr);
-            });
-        }
+    comptesCorbeille.forEach(c => {
+        let stats = calculerStatsCompte(c.id);
+        let soldeFinal = stats.totalDepots - stats.totalPrets - safeNum(c.montant_initial) - (c.carte_payee ? 0 : 500);
+        let tr = document.createElement('tr');
+        tr.innerHTML = `
+            <td>${c.date || '-'}</td>
+            <td style="color:var(--texte-blanc); font-weight:bold;">${c.prenom} ${c.nom} (${genererIdentifiantClient(c.id)})</td>
+            <td>${c.adresse}</td>
+            <td>${safeNum(c.montant_initial).toLocaleString('de-DE')} FC</td>
+            <td class="val-depot">+ ${stats.totalDepots.toLocaleString('de-DE')} FC</td>
+            <td class="val-dette">- ${stats.totalPrets.toLocaleString('de-DE')} FC</td>
+            <td>${c.carte_payee ? '<span class="badge badge-success">Payée</span>' : '<span class="badge badge-danger">-500 FC</span>'}</td>
+            <td style="color: ${soldeFinal >= 0 ? 'var(--vert-finance)' : 'var(--rouge-dette)'}; font-weight: bold;">${soldeFinal.toLocaleString('de-DE')} FC</td>
+            <td class="admin-action" style="display: ${currentRole === 'admin' ? 'table-cell' : 'none'};">
+                <button class="add-btn" style="padding: 5px 10px; font-size: 12px; background-color: var(--vert-finance);" onclick="restaurerCompte(${c.id})"><i class="fa-solid fa-rotate-left"></i> Restaurer</button>
+            </td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
 
         async function restaurerCompteCorbeille(compteId) {
             if (!confirm("Voulez-vous restaurer ce compte client dans la liste active ?")) return;
