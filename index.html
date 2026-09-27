@@ -9,13 +9,9 @@
     
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <!-- Ajout de SheetJS pour l'export Excel -->
     <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
     
     <style>
-        /* ==========================================
-           1. CONFIGURATION ET THÈME FINANCIER HIGH-TECH
-           ========================================== */
         :root {
             --bg-principal: #0b0f19;
             --bg-navigation: #111827;
@@ -30,11 +26,8 @@
             --sidebar-width: 260px;
             --sidebar-collapsed-width: 70px;
         }
-
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
         html, body { height: 100%; width: 100%; }
-
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-principal);
@@ -42,31 +35,14 @@
             display: flex;
             overflow: hidden;
         }
-
-        /* ==========================================
-           CHAMPS DE MONTANT AGRANDIS
-           ========================================== */
         .input-montant {
-            font-size: 24px !important;
-            font-weight: 800 !important;
-            padding: 15px !important;
-            text-align: center;
-            color: var(--vert-finance) !important;
-            letter-spacing: 1.5px;
+            font-size: 24px !important; font-weight: 800 !important; padding: 15px !important;
+            text-align: center; color: var(--vert-finance) !important; letter-spacing: 1.5px;
             background-color: rgba(16, 185, 129, 0.05) !important;
-            border: 2px solid var(--vert-finance) !important;
-            border-radius: 12px !important;
+            border: 2px solid var(--vert-finance) !important; border-radius: 12px !important;
             transition: all 0.3s ease;
         }
-        .input-montant:focus {
-            box-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
-            outline: none;
-            background-color: rgba(16, 185, 129, 0.1) !important;
-        }
-
-        /* ==========================================
-           NOTIFICATIONS OFFLINE / SYNC BAND
-           ========================================== */
+        .input-montant:focus { box-shadow: 0 0 15px rgba(16, 185, 129, 0.3); outline: none; background-color: rgba(16, 185, 129, 0.1) !important; }
         #notification-band {
             position: fixed; top: -100px; left: 50%; transform: translateX(-50%);
             padding: 15px 30px; border-radius: 8px; font-weight: bold; z-index: 10000;
@@ -77,34 +53,21 @@
         .bg-success { background-color: var(--vert-finance); }
         .bg-error { background-color: var(--rouge-dette); }
         .bg-warning { background-color: #f59e0b; color: #fff;}
-
-        /* ==========================================
-           2. ÉCRAN DE LOGIN FINANCIER
-           ========================================== */
         .login-container {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background-color: var(--bg-principal); display: flex;
-            justify-content: center; align-items: center; z-index: 2000; padding: 20px;
-            overflow-y: auto;
+            justify-content: center; align-items: center; z-index: 2000; padding: 20px; overflow-y: auto;
         }
-
         .login-box {
             background-color: var(--bg-navigation); border: 1px solid var(--border-couleur);
             padding: 30px; border-radius: 20px; width: 100%; max-width: 420px;
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-
-        .login-logo {
-            text-align: center; font-size: 26px; font-weight: 800;
-            color: var(--texte-blanc); margin-bottom: 5px; letter-spacing: -1px;
-        }
-        
+        .login-logo { text-align: center; font-size: 26px; font-weight: 800; color: var(--texte-blanc); margin-bottom: 5px; letter-spacing: -1px; }
         .login-subtitle {
-            text-align: center; font-size: 11px; font-weight: 300;
-            color: var(--rouge-dette); margin-bottom: 25px; text-transform: uppercase;
-            letter-spacing: 2px; font-family: 'Lucida Calligraphy', cursive;
+            text-align: center; font-size: 11px; font-weight: 300; color: var(--rouge-dette);
+            margin-bottom: 25px; text-transform: uppercase; letter-spacing: 2px; font-family: 'Lucida Calligraphy', cursive;
         }
-
         .form-group { margin-bottom: 20px; }
         .form-group label { display: block; margin-bottom: 8px; color: var(--texte-gris); font-size: 14px; }
         .form-group input, .form-group select, .form-group textarea {
@@ -113,52 +76,35 @@
             font-size: 15px; outline: none; font-family: inherit;
         }
         .form-group textarea { resize: vertical; min-height: 80px; }
-
         .login-btn {
             width: 100%; padding: 14px; background-color: var(--vert-finance);
             border: none; border-radius: 10px; color: #ffffff; font-size: 16px;
             font-weight: 700; cursor: pointer; transition: all 0.2s;
         }
         .login-btn:hover { background-color: var(--vert-finance-hover); }
-
-        /* ==========================================
-           3. STRUCTURE DE L'APPLICATION (RETRACTABLE)
-           ========================================== */
         .app-container { display: none; width: 100%; height: 100%; position: relative; }
-
         .sidebar {
             width: var(--sidebar-collapsed-width); background-color: var(--bg-navigation);
             height: 100%; border-right: 1px solid var(--border-couleur); display: flex;
             flex-direction: column; flex-shrink: 0; z-index: 1000;
-            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            overflow: hidden;
+            transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1); overflow: hidden;
         }
-        
         .sidebar.expanded { width: var(--sidebar-width); }
-
         .sidebar-logo {
             padding: 20px 15px; font-size: 20px; font-weight: 800; color: var(--texte-blanc);
             display: flex; flex-direction: column; align-items: center; justify-content: center;
             border-bottom: 1px solid var(--border-couleur); cursor: pointer;
             transition: all 0.3s; text-align: center;
         }
-        
         .sidebar-logo .brand-sub {
             font-size: 10px; font-weight: 400; color: var(--rouge-dette); margin-top: 2px;
-            white-space: nowrap; transition: opacity 0.2s; font-family: 'Lucida Calligraphy', cursive;
-            text-transform: uppercase;
+            white-space: nowrap; transition: opacity 0.2s; font-family: 'Lucida Calligraphy', cursive; text-transform: uppercase;
         }
-        
-        .sidebar:not(.expanded) .brand-text, 
-        .sidebar:not(.expanded) .brand-sub,
-        .sidebar:not(.expanded) .menu-text,
-        .sidebar:not(.expanded) .admin-section-title { display: none; }
-        
+        .sidebar:not(.expanded) .brand-text, .sidebar:not(.expanded) .brand-sub,
+        .sidebar:not(.expanded) .menu-text, .sidebar:not(.expanded) .admin-section-title { display: none; }
         .sidebar:not(.expanded) .menu-item { justify-content: center; padding: 14px 0; border-left: 4px solid transparent; }
         .sidebar:not(.expanded) .admin-section-circle { margin: 10px 5px; padding: 10px 0; border-radius: 10px; }
-
         .sidebar-menu { list-style: none; padding: 20px 0; overflow-y: auto; flex-grow: 1; overflow-x: hidden; }
-        
         .menu-item {
             padding: 14px 20px; display: flex; align-items: center; color: var(--texte-gris);
             text-decoration: none; font-size: 15px; cursor: pointer; border-left: 4px solid transparent;
@@ -170,17 +116,14 @@
             border-left: 4px solid var(--vert-finance); color: var(--texte-blanc);
         }
         .menu-item i { width: 30px; font-size: 17px; text-align: center; flex-shrink: 0; }
-
         .admin-section-circle {
             margin: 15px 15px; padding: 15px 5px; border: 2px solid var(--vert-finance); 
-            border-radius: 24px; background-color: rgba(16, 185, 129, 0.02);
-            transition: all 0.3s;
+            border-radius: 24px; background-color: rgba(16, 185, 129, 0.02); transition: all 0.3s;
         }
         .admin-section-title {
             padding-left: 20px; font-size: 11px; text-transform: uppercase; color: var(--vert-finance);
             font-weight: bold; margin-bottom: 5px; white-space: nowrap;
         }
-
         .logout-box { padding: 15px; border-top: 1px solid var(--border-couleur); }
         .logout-btn {
             width: 100%; padding: 12px; background-color: rgba(239, 68, 68, 0.1);
@@ -188,41 +131,29 @@
             display: flex; justify-content: center; align-items: center;
         }
         .sidebar:not(.expanded) .logout-btn span { display: none; }
-
         .content-wrapper { flex-grow: 1; display: flex; flex-direction: column; height: 100%; overflow: hidden; position: relative; }
-        
         .topbar {
             height: 70px; background-color: var(--bg-navigation); border-bottom: 1px solid var(--border-couleur);
             padding: 0 24px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
         }
-
         .menu-toggle {
             background: none; border: none; color: var(--texte-blanc); font-size: 20px; cursor: pointer; margin-right: 15px;
             display: flex; align-items: center; justify-content: center;
         }
-
         .app-title { font-size: 18px; font-weight: 600; flex-grow: 1; }
         .user-profile-header { text-align: right; margin-left: 10px; }
         .user-name { font-weight: 600; font-size: 14px; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
         .user-role { font-size: 11px; color: var(--vert-finance); }
-
         .main-content { padding: 24px; flex-grow: 1; overflow-y: auto; overflow-x: hidden; }
-
         .sidebar-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0, 0, 0, 0.6); z-index: 999;
         }
-
-        /* ==========================================
-           4. PAGES, GRILLES ET TABLEAUX RESPONSIVES
-           ========================================== */
         .page-section { display: none; }
         .page-section.active { display: block; animation: fadeIn 0.3s ease-in-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-        
         .section-title { font-size: 22px; margin-bottom: 5px; }
         .section-subtitle { color: var(--texte-gris); margin-bottom: 24px; font-size: 13px; }
-
         .stats-grid { 
             display: flex; flex-wrap: nowrap; gap: 15px; margin-bottom: 24px; overflow-x: auto; padding-bottom: 10px; -webkit-overflow-scrolling: touch;
         }
@@ -234,17 +165,14 @@
         .val-depot { color: var(--vert-finance); }
         .val-dette { color: var(--rouge-dette); }
         .stat-label { color: var(--texte-gris); font-size: 12px; }
-
         .action-bar { display: flex; flex-direction: row; justify-content: space-between; align-items: center; margin-bottom: 20px; gap: 15px; flex-wrap: wrap; }
         .add-btn { padding: 11px 22px; background-color: var(--vert-finance); border: none; border-radius: 10px; color: #ffffff; font-weight: 600; cursor: pointer; white-space: nowrap; width: auto; transition: 0.2s; }
         .add-btn:hover { background-color: var(--vert-finance-hover); }
         .filter-input-search { flex-grow: 1; max-width: 350px; }
-
         .table-container { background-color: var(--bg-navigation); border: 1px solid var(--border-couleur); border-radius: 14px; overflow-x: auto; -webkit-overflow-scrolling: touch; margin-bottom: 20px; }
         table { width: 100%; border-collapse: collapse; text-align: left; min-width: 750px; }
         th { background-color: rgba(0, 0, 0, 0.2); color: var(--texte-gris); padding: 14px 16px; font-size: 13px; border-bottom: 1px solid var(--border-couleur); white-space: nowrap; }
         td { padding: 14px 16px; border-bottom: 1px solid var(--border-couleur); font-size: 14px; }
-
         .action-icons { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
         .action-icons button { background: none; border: none; cursor: pointer; font-size: 17px; transition: transform 0.2s; }
         .action-icons button:hover { transform: scale(1.15); }
@@ -252,15 +180,12 @@
         .delete-icon { color: var(--rouge-dette); }
         .add-icon { color: var(--vert-finance); }
         .guard-icon { color: var(--vert-finance); }
-
         .admin-action { display: none; }
         .badge { padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; white-space: nowrap; display: inline-block; text-align: center; }
         .badge-success { background: rgba(16, 185, 129, 0.15); color: var(--vert-finance); }
         .badge-danger { background: rgba(239, 44, 44, 0.15); color: var(--rouge-dette); }
         .badge-warning { background: rgba(16, 185, 129, 0.25); color: var(--vert-finance); font-style: italic; }
         .badge-neutral { background: rgba(255, 255, 255, 0.1); color: var(--texte-blanc); }
-
-        /* MODAL GÉNÉRIQUE (ACTIONS) */
         .modal-overlay {
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.7); z-index: 3000; justify-content: center; align-items: center;
@@ -274,7 +199,6 @@
         }
         .modal-large { max-width: 75vw !important; }
         .modal-65 { max-width: 65vw !important; }
-
         .modal-title { margin-bottom: 20px; color: var(--vert-finance); font-size: 18px; }
         .modal-btn-group { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
         .btn-cancel { background: transparent; border: 1px solid var(--texte-gris); color: var(--texte-blanc); padding: 11px; flex: 1; border-radius: 8px; cursor: pointer; transition: 0.2s; min-width: 100px; }
@@ -282,64 +206,47 @@
         .btn-confirm { background: var(--vert-finance); border: none; color: white; font-weight: bold; padding: 11px; flex: 1; border-radius: 8px; cursor: pointer; min-width: 100px; }
         .btn-confirm:hover:not(:disabled) { background-color: var(--vert-finance-hover); }
         .btn-confirm:disabled { opacity: 0.6; cursor: not-allowed; }
-
         .filter-panel { background: var(--bg-navigation); padding: 16px; border-radius: 12px; margin-bottom: 24px; border: 1px solid var(--border-couleur); display: flex; gap: 16px; align-items: flex-end; flex-wrap: wrap; }
         .filter-control { display: flex; flex-direction: column; gap: 5px; flex-grow: 1; min-width: 150px; }
         .filter-control.search-ctrl { flex-grow: 2; min-width: 250px; }
         .filter-control label { font-size: 12px; color: var(--texte-gris); }
         .filter-input { width: 100%; padding: 10px 12px; background: var(--bg-principal); border: 1px solid var(--border-couleur); color: white; border-radius: 8px; outline: none; font-size: 14px; }
-
         .chart-header { display: flex; justify-content: space-between; align-items: center; margin-top: 30px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
         .chart-header h3 { font-size: 16px; font-weight: 600; }
         .chart-header select { width: auto; padding: 8px 12px; font-size: 13px; cursor: pointer; }
         .chart-wrapper { background-color: var(--bg-navigation); border: 1px solid var(--border-couleur); border-radius: 14px; padding: 16px; position: relative; height: 350px; width: 100%; }
-
-        /* ==========================================
-           5. STYLE DE LA CARTE NUMÉRIQUE
-           ========================================== */
         .card-modal-content {
             background-color: var(--bg-navigation); color: var(--texte-blanc); padding: 25px; border-radius: 15px; width: 100%;
             max-width: 440px; max-height: 90vh; overflow-y: auto; overflow-x: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
             position: relative; border: 1px solid var(--border-couleur); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             margin: auto;
         }
-
         .btn-close-card {
             position: absolute; top: 12px; right: 12px; background: transparent; color: var(--texte-gris); border: 1px solid var(--border-couleur);
             width: 30px; height: 30px; border-radius: 8px; font-size: 16px; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: 0.2s; box-shadow: none;
         }
         .btn-close-card:hover { background: rgba(239, 68, 68, 0.15); color: var(--rouge-dette); border-color: var(--rouge-dette); }
-
         .card-header-top { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid var(--border-couleur); padding-bottom: 10px; margin-bottom: 10px; flex-wrap: wrap; gap: 10px;}
         .card-logo-area { display: flex; flex-direction: column; }
         .card-title-main { font-size: 18px; font-weight: 800; letter-spacing: 1px; color: var(--texte-blanc); text-transform: uppercase; }
         .card-title-sub { font-size: 10px; font-weight: 400; color: var(--rouge-dette); letter-spacing: 2px; text-transform: uppercase; margin-top: -2px; margin-bottom: 5px; font-family: 'Lucida Calligraphy', cursive; }
         .card-subtitle { font-size: 10px; font-weight: bold; color: var(--texte-gris); letter-spacing: 1px; margin-top: 2px; }
-        
         .card-meta-info { font-size: 12px; line-height: 1.4; color: var(--texte-gris); background: var(--bg-principal); padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border-couleur); flex-grow: 1; min-width: 200px; }
         .card-meta-info strong { color: var(--texte-blanc); font-size: 13px; }
-
         .card-grid-31 { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px; margin: 10px 0; }
         .card-box { aspect-ratio: 1; border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 2px; font-weight: bold; position: relative; background: var(--bg-principal); }
         .card-box .box-num { position: absolute; top: 2px; left: 4px; color: var(--texte-gris); font-size: 9px; }
         .card-box .box-stamp { font-size: 16px; font-weight: 900; display: none; }
         .card-box .box-label { font-size: 7px; margin-top: 2px; font-weight: normal; display: none; text-align: center; line-height: 1; }
-        
         .card-box.filled-red { background-color: rgba(239, 68, 68, 0.25) !important; border-color: var(--rouge-dette); color: var(--rouge-dette); }
         .card-box.filled-red .box-stamp, .card-box.filled-red .box-label { display: block; }
         .card-box.filled-blue { background-color: rgba(99, 102, 241, 0.25) !important; border-color: var(--bleu-accent); color: #818cf8; }
         .card-box.filled-blue .box-stamp, .card-box.filled-blue .box-label { display: block; }
-
         .card-footer-summary { background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; border: 1px solid var(--border-couleur); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--texte-gris); margin-top: 10px; }
         .card-footer-summary strong { font-size: 13px; }
-
         .card-action-panel { display: flex; gap: 8px; margin-top: 15px; flex-wrap: wrap; }
         .card-action-panel button { flex: 1; padding: 10px; font-weight: bold; font-size: 12px; border-radius: 8px; border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: transform 0.2s; min-width: 140px;}
         .card-action-panel button:hover { transform: translateY(-2px); }
-
-        /* ==========================================
-           6. MEDIA QUERIES
-           ========================================== */
         @media (max-width: 992px) {
             .sidebar { position: fixed; top: 0; left: 0; transform: translateX(-100%); width: var(--sidebar-width) !important; box-shadow: 10px 0 30px rgba(0,0,0,0.5); }
             .sidebar.open { transform: translateX(0); }
@@ -405,7 +312,7 @@
                 <li><a class="menu-item active" onclick="switchPage('dashboard')"><i class="fa-solid fa-chart-line"></i><span class="menu-text">Tableau de Bord Global</span></a></li>
                 <li><a class="menu-item" onclick="switchPage('comptes')"><i class="fa-solid fa-users"></i><span class="menu-text">Gestion des Comptes</span></a></li>
                 <li><a class="menu-item" onclick="switchPage('dettes_hc')"><i class="fa-solid fa-handshake"></i><span class="menu-text">Dettes Hors Carte</span></a></li>
-                <li><a class="menu-item" onclick="switchPage('boutique')"><i class="fa-solid fa-store"></i><span class="menu-text">Compte pharmacie</span></a></li>
+                <li><a class="menu-item" onclick="switchPage('boutique')"><i class="fa-solid fa-prescription-bottle-medical"></i><span class="menu-text">Compte Pharmacie</span></a></li>
                 <li><a class="menu-item" onclick="switchPage('historique')"><i class="fa-solid fa-receipt"></i><span class="menu-text">Historique Opérations</span></a></li>
                 <div class="admin-section-circle admin-action" id="adminCircleContainer">
                     <div class="admin-section-title">Espace Décisions</div>
@@ -439,12 +346,14 @@
                     <div class="stats-grid">
                         <div class="stat-card"><div class="stat-value val-depot" id="stat-depots">0 FC</div><div class="stat-label">Total Dépôts Entrants</div></div>
                         <div class="stat-card"><div class="stat-value val-dette" id="stat-prets">0 FC</div><div class="stat-label">Total Prêts Sortants (Dette)</div></div>
-                        <div class="stat-card"><div class="stat-value" style="color:var(--bleu-accent);" id="stat-cartes">0 FC</div><div class="stat-label">Total Recettes Cartes (500)</div></div>
+                        <!-- ✅ NOUVELLE CARTE : TOTAL SORTIES -->
+                        <div class="stat-card"><div class="stat-value" style="color:var(--rouge-dette);" id="stat-total-sortie">0 FC</div><div class="stat-label">Total Sorties</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--bleu-accent);" id="stat-cartes">0 FC</div><div class="stat-label">Total Recettes Cartes (1000)</div></div>
                         <div class="stat-card"><div class="stat-value" style="color:var(--violet-init);" id="stat-initial">0 FC</div><div class="stat-label">Total Montant Initial Actif</div></div>
                         <div class="stat-card"><div class="stat-value" style="color:var(--vert-finance);" id="stat-caisse">0 FC</div><div class="stat-label">Caisse Réelle Restante</div></div>
                     </div>
                     <div class="chart-header">
-                        <h3>Courbe d'Évolution (Tous les indicateurs)</h3>
+                        <h3>Courbe d'Évolution (Dépôts, Dettes, Caisse)</h3>
                         <select id="chartPeriodFilter" class="filter-input" onchange="renderEvolutionChart()">
                             <option value="7">7 derniers jours</option>
                             <option value="30" selected>30 derniers jours</option>
@@ -492,7 +401,7 @@
                 </section>
 
                 <section id="page-boutique" class="page-section">
-                    <h2 class="section-title">Comptes pharmacie (Employés)</h2>
+                    <h2 class="section-title">Comptes Pharmacie (Employés)</h2>
                     <p class="section-subtitle">Gérez les salaires et les dettes accumulées durant le mois par le personnel.</p>
                     <div class="action-bar"><button class="add-btn" onclick="ouvrirModalNouvelEmployeBoutique()"><i class="fa-solid fa-user-plus"></i> Ajouter un employé</button></div>
                     <div class="table-container">
@@ -525,6 +434,7 @@
                     <div class="stats-grid">
                         <div class="stat-card"><div class="stat-value val-depot" id="gl-stat-depots">0 FC</div><div class="stat-label">Total Dépôts</div></div>
                         <div class="stat-card"><div class="stat-value val-dette" id="gl-stat-prets">0 FC</div><div class="stat-label">Total Dettes</div></div>
+                        <div class="stat-card"><div class="stat-value" style="color:var(--rouge-dette);" id="gl-stat-total-sortie">0 FC</div><div class="stat-label">Total Sorties</div></div>
                         <div class="stat-card"><div class="stat-value" style="color:var(--violet-init);" id="gl-stat-initial">0 FC</div><div class="stat-label">Montant Initial Tot.</div></div>
                         <div class="stat-card"><div class="stat-value" style="color:var(--vert-finance);" id="gl-stat-caisse">0 FC</div><div class="stat-label">Caisse Réelle</div></div>
                         <div class="stat-card"><div class="stat-value" style="color:var(--vert-finance);" id="gl-stat-solde-rendu">0 FC</div><div class="stat-label">Total Solde Rendu (Inactifs)</div></div>
@@ -548,7 +458,17 @@
                     <div class="table-container">
                         <table>
                             <thead>
-                                <tr><th>Ancien Client</th><th>Adresse</th><th>Capital Remis</th><th>Dépôts</th><th>Dettes</th><th>Frais Carte</th><th>Solde Final Rendu</th><th class="admin-action">Action Admin</th></tr>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Ancien Client</th>
+                                    <th>Adresse</th>
+                                    <th>Capital Remis</th>
+                                    <th>Dépôts</th>
+                                    <th>Dettes</th>
+                                    <th>Frais Carte</th>
+                                    <th>Solde Final Rendu</th>
+                                    <th class="admin-action">Action Admin</th>
+                                </tr>
                             </thead>
                             <tbody id="table-corbeille-body"></tbody>
                         </table>
@@ -558,7 +478,6 @@
         </div>
     </div>
 
-    <!-- Modales -->
     <div id="cardModal" class="modal-overlay" onclick="fermerCarteModal(event)">
         <div class="card-modal-content" onclick="event.stopPropagation()">
             <button class="btn-close-card" onclick="fermerCarteModal()"><i class="fa-solid fa-xmark"></i></button>
@@ -577,7 +496,7 @@
         </div>
     </div>
 
-   <script>
+    <script>
         function formatMontantInput(input) {
             let val = input.value.replace(/\D/g, '');
             if (val !== "") { input.value = val.replace(/\B(?=(\d{3})+(?!\d))/g, "."); } 
@@ -677,9 +596,9 @@
         document.addEventListener('input', function(e) { if (e.target.tagName.toLowerCase() === 'input' && e.target.type === 'text' && !e.target.classList.contains('input-montant')) { let val = e.target.value; if (val.length > 0) { e.target.value = val.charAt(0).toUpperCase() + val.slice(1); } } });
         function safeNum(val) { if (val === null || val === undefined) return 0; let cleanStr = val.toString().replace(/\./g, ""); let parsed = parseFloat(cleanStr.replace(/[^0-9-]+/g, "")); return isNaN(parsed) ? 0 : parsed; }
 
-      onst SUPABASE_URL = "https://mfxdrozdnwhlvirevnuk.supabase.co"; 
-     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meGRyb3pkbndobHZpcmV2bnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTkwNzIsImV4cCI6MjEwNTMzNTA3Mn0.txYO0pC2VXpxwWQxUDMykHJspm4G4qD_TfoyA1D23Hs";
-          const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+       const SUPABASE_URL = "https://mfxdrozdnwhlvirevnuk.supabase.co"; 
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1meGRyb3pkbndobHZpcmV2bnVrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODk3NTkwNzIsImV4cCI6MjEwNTMzNTA3Mn0.txYO0pC2VXpxwWQxUDMykHJspm4G4qD_TfoyA1D23Hs";
+        const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
         let db = { comptes: [], transactions: [], dettes_hc: [], transactions_hc: [], boutique_employes: [], boutique_historique: [] };
         let currentRole = ""; let evolutionChartInstance = null; let selectedCompteId = null; let currentPage = 1; const itemsPerPage = 10;
@@ -1114,7 +1033,7 @@
                 <div class="card-header-top">
                     <div class="card-logo-area">
                         <span class="card-title-main"><i class="fa-solid fa-vault"></i> BWAKISA</span>
-                        <span class="card-title-sub">BON PRIX</span>
+                        <span class="card-title-sub">LOHOSO PHARMA</span>
                         <span class="card-subtitle">CARTE DE DÉPÔT NUMÉRIQUE</span>
                     </div>
                     <div class="card-meta-info">
